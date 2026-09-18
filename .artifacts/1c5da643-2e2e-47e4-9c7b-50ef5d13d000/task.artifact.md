@@ -1,0 +1,3 @@
+- [x] Update `pubspec.yaml`: remove `social_sharing_plus`, add `whatsapp_share_plus`
+- [x] Update `WhatsappUtils` to use `whatsapp_share_plus`
+- [x] Verify functionality on device/emulator

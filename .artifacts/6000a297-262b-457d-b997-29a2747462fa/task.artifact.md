@@ -1,0 +1,4 @@
+- [x] Implement memory-efficient image loading in `ShadeCardsGalleryScreen`
+    - [x] Calculate grid item width
+    - [x] Update `AppCachedImage` parameters (`width`, `useMemCache`, `filterQuality`)
+- [x] Verify changes in the UI (Manual Verification - User to confirm)

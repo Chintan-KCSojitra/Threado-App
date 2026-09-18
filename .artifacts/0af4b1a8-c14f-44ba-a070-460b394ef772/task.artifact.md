@@ -1,0 +1,7 @@
+- [x] Update `shade_cards_gallery_screen.dart`
+    - [x] Remove `_buildShadeCardPlaceholder`
+    - [x] Update `AppCachedImage` for full original quality (no placeholder, no mem cache)
+- [x] Update `ar_match_screen.dart`
+    - [x] Fix shade card positioning and infinite scroll in `_buildSelectedShadeCardPanel`
+    - [x] Remove unused `_shadeCardScrollController`
+- [x] Verify scrolling and quality fixes

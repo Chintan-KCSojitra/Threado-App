@@ -1,0 +1,5 @@
+- `[x]` Record initial size of `assets/png/`
+- `[x]` Compress PNG files in `assets/png/` using `optipng` (simulated via Python Pillow optimize)
+- `[x]` Compress JPG files in `assets/png/` using `jpegoptim` (simulated via Python Pillow optimize)
+- `[x]` Record final size and calculate savings
+- `[x]` Verify all images are still valid and viewable

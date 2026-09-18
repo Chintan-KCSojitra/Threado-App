@@ -1,0 +1,39 @@
+Analyzing Thredo...                                             
+
+   info • The null check operator shouldn't be used on a variable whose type is a potentially nullable type parameter • lib/api/api_model.dart:18:44 • null_check_on_nullable_type_parameter
+warning • The value of the field '_connectionStatus' isn't used • lib/main.dart:58:28 • unused_field
+   info • 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre • lib/utils/app_utils.dart:113:9 • deprecated_member_use
+warning • The operand can't be 'null', so the condition is always 'false' • lib/utils/shared_preference_util.dart:73:14 • unnecessary_null_comparison
+   info • Don't invoke 'print' in production code • lib/utils/shared_preference_util.dart:74:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/utils/shared_preference_util.dart:80:7 • avoid_print
+   info • The import of 'package:flutter/cupertino.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/view/category/sub_category_screen.dart:2:8 • unnecessary_import
+warning • The value of the local variable 'isLeft' isn't used • lib/view/category/sub_category_screen.dart:241:16 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/category/sub_category_screen.dart:452:69 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/category/sub_category_screen.dart:535:67 • deprecated_member_use
+warning • The '!' will have no effect because the receiver can't be null • lib/view/company/company_profile_screen.dart:159:59 • unnecessary_non_null_assertion
+   info • Parameter 'key' could be a super parameter • lib/view/home/video_grid_item.dart:8:9 • use_super_parameters
+warning • The value of the field '_headerSlideAnimation' isn't used • lib/view/login/login_screen.dart:41:32 • unused_field
+warning • The value of the field '_headerSlideAnimation' isn't used • lib/view/otpVerification/otp_verification_screen.dart:49:32 • unused_field
+warning • The value of the field '_hasPermission' isn't used • lib/view/productDetail/ar_match_screen.dart:25:8 • unused_field
+   info • Use a 'SizedBox' to add whitespace to a layout • lib/view/productDetail/ar_match_screen.dart:139:16 • sized_box_for_whitespace
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/productDetail/ar_match_screen.dart:178:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/productDetail/ar_match_screen.dart:187:35 • deprecated_member_use
+warning • The value of the local variable 'response' isn't used • lib/view/productDetail/cubit/product_detail_cubit.dart:110:11 • unused_local_variable
+warning • Unused import: 'package:thredo/utils/navigation_utils.dart' • lib/view/productDetail/product_detail_screen.dart:15:8 • unused_import
+warning • Unused import: 'package:thredo/view/company/company_profile_screen.dart' • lib/view/productDetail/product_detail_screen.dart:16:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps • lib/view/productDetail/product_detail_screen.dart:55:9 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/profile/profile_screen.dart:373:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/profile/profile_screen.dart:524:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/profile/profile_screen.dart:538:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/profile/profile_screen.dart:642:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/profile/profile_screen.dart:656:41 • deprecated_member_use
+warning • The value of the field '_logoSettleScaleAnimation' isn't used • lib/view/splash/splash_screen.dart:27:32 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/wishlist/wish_list_screen.dart:102:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/wishlist/wish_list_screen.dart:167:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/view/wishlist/wish_list_screen.dart:171:53 • deprecated_member_use
+warning • Unused import: 'package:thredo/widget/common_widgets.dart' • lib/widget/common_appbar.dart:5:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widget/common_appbar.dart:81:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widget/common_widgets.dart:398:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widget/common_widgets.dart:429:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widget/profile_image_widget.dart:32:33 • deprecated_member_use
+

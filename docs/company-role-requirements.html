@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thredo — Company Role Requirements</title>
+  <style>
+    @page { margin: 20mm 18mm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #1a1a2e;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+    h1 { font-size: 22pt; color: #09064A; border-bottom: 3px solid #CEAB8D; padding-bottom: 8px; margin-top: 0; }
+    h2 { font-size: 15pt; color: #09064A; margin-top: 28px; page-break-after: avoid; }
+    h3 { font-size: 12pt; color: #333; margin-top: 20px; page-break-after: avoid; }
+    h4 { font-size: 11pt; color: #555; margin-top: 14px; }
+    .meta { background: #E7E3DA; padding: 14px 18px; border-radius: 8px; margin: 16px 0 24px; }
+    .meta table { width: 100%; border-collapse: collapse; }
+    .meta td { padding: 3px 8px; vertical-align: top; }
+    .meta td:first-child { font-weight: 600; width: 140px; color: #09064A; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 10pt; }
+    th { background: #09064A; color: #fff; text-align: left; padding: 8px 10px; }
+    td { border: 1px solid #ddd; padding: 7px 10px; vertical-align: top; }
+    tr:nth-child(even) td { background: #faf9f7; }
+    code, pre { font-family: 'SF Mono', Menlo, monospace; font-size: 9pt; background: #f4f4f4; }
+    pre { padding: 12px; border-radius: 6px; overflow-x: auto; border-left: 4px solid #CEAB8D; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9pt; font-weight: 600; }
+    .yes { background: #d4edda; color: #155724; }
+    .no { background: #f8d7da; color: #721c24; }
+    .warn { background: #fff3cd; color: #856404; }
+    .toc { background: #f9f9f9; padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
+    .toc ol { margin: 0; padding-left: 20px; }
+    .toc li { margin: 4px 0; }
+    .page-break { page-break-before: always; }
+    .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 9pt; color: #777; text-align: center; }
+    ul { margin: 8px 0; }
+    li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Thredo (Threado) — Company Role Extension</h1>
+<p><strong>Product Requirements Document (PRD)</strong></p>
+
+<div class="meta">
+  <table>
+    <tr><td>Document version</td><td>1.0</td></tr>
+    <tr><td>Date</td><td>21 May 2026</td></tr>
+    <tr><td>Application</td><td>Thredo (Threado) — Flutter mobile app</td></tr>
+    <tr><td>Package</td><td>com.app.thredo</td></tr>
+    <tr><td>Scope</td><td>Add <strong>Company</strong> role alongside existing <strong>User</strong> (trader) role</td></tr>
+  </table>
+</div>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li>Executive Summary</li>
+    <li>Current State — User Module Analysis</li>
+    <li>Company Role — Business Requirements</li>
+    <li>Screen-by-Screen Requirements (Company vs User)</li>
+    <li>Company List &amp; Approval Workflow</li>
+    <li>Company Bottom Navigation</li>
+    <li>Data Model Extensions</li>
+    <li>API Architecture</li>
+    <li>UI/UX Guidelines</li>
+    <li>Security &amp; Permissions</li>
+    <li>Implementation Phases</li>
+    <li>Acceptance Criteria</li>
+    <li>Open Questions</li>
+  </ol>
+</div>
+
+<h2>1. Executive Summary</h2>
+<p>Thredo is currently a <strong>user-facing B2B thread marketplace</strong> where traders browse products, match threads by image, discover companies, and manage wishlists. The app has a single navigation shell and all APIs use the <code>user/</code> namespace. The login response already includes a <code>role</code> field, but it is <strong>not used</strong> for routing or UI branching.</p>
+<p>This document defines requirements to introduce a <strong>Company role</strong> so registered companies can:</p>
+<ul>
+  <li>View and manage <strong>only their own products</strong> on a familiar Home-like experience</li>
+  <li>Use <strong>Product Reel</strong> and <strong>Product Detail</strong> with appropriate restrictions</li>
+  <li>Keep <strong>Category</strong> browsing unchanged</li>
+  <li><strong>Exclude</strong> the Thread Match (image scan) feature</li>
+  <li>Access a new <strong>Company List</strong> with an <strong>approval workflow</strong> for cross-company product visibility</li>
+  <li>Use a <strong>dedicated Profile</strong> layout showing full company details</li>
+</ul>
+
+<h2>2. Current State — User Module Analysis</h2>
+
+<h3>2.1 Authentication Flow</h3>
+<table>
+  <tr><th>Step</th><th>Screen</th><th>Behavior</th></tr>
+  <tr><td>1</td><td>Splash</td><td>Logo animation; <code>POST user/images/list</code></td></tr>
+  <tr><td>2</td><td>Choose Language</td><td>First-run language selection</td></tr>
+  <tr><td>3</td><td>Login</td><td>Phone (+91), terms acceptance</td></tr>
+  <tr><td>4</td><td>OTP Verification</td><td><code>POST user/auth/otp/verify</code></td></tr>
+  <tr><td>5</td><td>Bottom Menu</td><td>Single shell for all users</td></tr>
+</table>
+
+<h3>2.2 LoginData Model (Existing)</h3>
+<table>
+  <tr><th>Field</th><th>API key</th><th>Notes</th></tr>
+  <tr><td>accessToken</td><td>access_token</td><td>Bearer token</td></tr>
+  <tr><td>userId</td><td>user_id</td><td>User UUID</td></tr>
+  <tr><td>role</td><td>role</td><td><strong>Stored but never used in UI</strong></td></tr>
+  <tr><td>phone</td><td>phone</td><td>Mobile number</td></tr>
+</table>
+
+<h3>2.3 Current Bottom Navigation (User)</h3>
+<table>
+  <tr><th>Tab</th><th>Screen</th><th>Purpose</th></tr>
+  <tr><td>Home</td><td>HomeScreen</td><td>Products, banners, search, filters</td></tr>
+  <tr><td>Category</td><td>CategoryScreen</td><td>Category grid → sub-category</td></tr>
+  <tr><td>Match</td><td>ThreadMatchScreen</td><td>Camera/gallery thread match</td></tr>
+  <tr><td>Company</td><td>CompanyScreen</td><td>Browse supplier companies</td></tr>
+  <tr><td>Profile</td><td>ProfileScreen</td><td>Wishlist, settings, logout</td></tr>
+</table>
+
+<h3>2.4 Key User Screen Features</h3>
+<table>
+  <tr><th>Screen</th><th>Key features</th><th>Primary API</th></tr>
+  <tr><td>Home</td><td>3-col grid, banners, search, filters, reel nav</td><td>GET user/products</td></tr>
+  <tr><td>Category</td><td>Paginated categories, filtered products</td><td>GET user/categories</td></tr>
+  <tr><td>Match</td><td>Image upload → matched products</td><td>POST user/images/match-thread</td></tr>
+  <tr><td>Company</td><td>Company search, profile, reviews, shade cards</td><td>GET user/companies</td></tr>
+  <tr><td>Product Detail</td><td>Zoom, wishlist, WhatsApp, AR, embroidery AI</td><td>user/wishlist, user/events</td></tr>
+  <tr><td>Profile</td><td>Phone display, wishlist, language, logout</td><td>POST user/auth/logout</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>3. Company Role — Business Requirements</h2>
+
+<h3>3.1 Post-Login Routing</h3>
+<pre>OTP Verify → Read LoginData.role
+    ├── user/trader  → UserBottomMenuScreen (5 tabs)
+    └── company      → CompanyBottomMenuScreen (4 tabs, no Match)</pre>
+
+<h2>4. Screen-by-Screen: User vs Company</h2>
+
+<h3>4.1 Home Screen</h3>
+<table>
+  <tr><th>Aspect</th><th>User</th><th>Company</th></tr>
+  <tr><td>UI layout</td><td>Same grid, search, filters</td><td><strong>Same layout</strong></td></tr>
+  <tr><td>Products shown</td><td>All products</td><td><strong>Own company only</strong></td></tr>
+  <tr><td>Company filter</td><td>Available</td><td><strong>Hidden</strong></td></tr>
+  <tr><td>Wishlist shortcut</td><td>Visible</td><td><strong>Hidden</strong></td></tr>
+</table>
+
+<h3>4.2 Product Reel &amp; Detail</h3>
+<table>
+  <tr><th>Feature</th><th>User</th><th>Company</th></tr>
+  <tr><td>Reel / carousel / zoom</td><td><span class="badge yes">Yes</span></td><td><span class="badge yes">Yes</span></td></tr>
+  <tr><td>Wishlist</td><td><span class="badge yes">Yes</span></td><td><span class="badge no">No</span></td></tr>
+  <tr><td>Embroidery Match</td><td><span class="badge yes">Yes</span></td><td><span class="badge no">No</span></td></tr>
+  <tr><td>AR Match</td><td><span class="badge yes">Yes</span></td><td><span class="badge warn">Optional</span></td></tr>
+  <tr><td>WhatsApp share</td><td><span class="badge yes">Yes</span></td><td><span class="badge warn">Optional</span></td></tr>
+  <tr><td>Edit product</td><td><span class="badge no">No</span></td><td><span class="badge warn">Future</span></td></tr>
+</table>
+
+<h3>4.3 Category Screen</h3>
+<p><strong>Unchanged UI.</strong> Products in sub-category scoped to own company when accessed from company shell.</p>
+
+<h3>4.4 Thread Match</h3>
+<p><strong>Excluded</strong> for company role — tab hidden, route blocked.</p>
+
+<h2>5. Company List &amp; Approval Workflow</h2>
+
+<h3>5.1 Access States</h3>
+<table>
+  <tr><th>Status</th><th>Can view peer products?</th><th>UI action</th></tr>
+  <tr><td>None</td><td>No</td><td>"Request Access" button</td></tr>
+  <tr><td>Pending</td><td>No</td><td>"Request Pending" badge</td></tr>
+  <tr><td>Approved</td><td>Yes</td><td>Navigate to peer products (read-only)</td></tr>
+  <tr><td>Rejected</td><td>No</td><td>"Request Rejected" + re-request policy TBD</td></tr>
+</table>
+
+<h3>5.2 Request Flow</h3>
+<pre>Company A → Company List → Select Company B
+    → POST company/access-requests { target_company_id }
+    → Status: Pending
+
+Company B → Incoming Requests
+    → Accept → Company A can view B's products
+    → Reject → Access denied</pre>
+
+<h3>5.3 Proposed APIs</h3>
+<table>
+  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+  <tr><td>company/peers</td><td>GET</td><td>Companies with access status</td></tr>
+  <tr><td>company/access-requests</td><td>POST</td><td>Send access request</td></tr>
+  <tr><td>company/access-requests/incoming</td><td>GET</td><td>Requests received</td></tr>
+  <tr><td>company/access-requests/{id}/accept</td><td>POST</td><td>Approve</td></tr>
+  <tr><td>company/access-requests/{id}/reject</td><td>POST</td><td>Reject</td></tr>
+  <tr><td>company/companies/{id}/products</td><td>GET</td><td>Peer products (if approved)</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>6. Company Bottom Navigation</h2>
+<table>
+  <tr><th>Tab</th><th>Screen</th></tr>
+  <tr><td>Home</td><td>Own products (same UI as user Home)</td></tr>
+  <tr><td>Category</td><td>Unchanged category UI</td></tr>
+  <tr><td>Companies</td><td>Peer list + approval workflow</td></tr>
+  <tr><td>Profile</td><td>Full company details (separate layout)</td></tr>
+</table>
+<p><em>Match tab excluded.</em></p>
+
+<h2>7. Company Profile UI (Separate Layout)</h2>
+<table>
+  <tr><th>Section</th><th>Content</th></tr>
+  <tr><td>Header</td><td>Logo, banner, company name</td></tr>
+  <tr><td>Contact</td><td>Email, phone, WhatsApp, website</td></tr>
+  <tr><td>Address</td><td>Full address fields</td></tr>
+  <tr><td>Social</td><td>All social links</td></tr>
+  <tr><td>Shade cards</td><td>If enabled</td></tr>
+  <tr><td>Access requests</td><td>Incoming requests with badge</td></tr>
+  <tr><td>Account</td><td>Language, legal, logout, delete</td></tr>
+</table>
+<p><strong>Not included:</strong> Wishlist (user-only feature).</p>
+
+<h2>8. Data Model Extensions</h2>
+<h3>LoginData (extend)</h3>
+<table>
+  <tr><th>Field</th><th>Type</th></tr>
+  <tr><td>role</td><td>user | company</td></tr>
+  <tr><td>companyId</td><td>UUID (when role = company)</td></tr>
+</table>
+
+<h3>CompanyAccessRequest (new)</h3>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td>id</td><td>Request UUID</td></tr>
+  <tr><td>requesterCompanyId</td><td>Company A</td></tr>
+  <tr><td>targetCompanyId</td><td>Company B</td></tr>
+  <tr><td>status</td><td>pending | approved | rejected</td></tr>
+  <tr><td>message / rejectionReason</td><td>Optional text</td></tr>
+</table>
+
+<h2>9. Security Rules</h2>
+<ul>
+  <li>Server enforces <code>company_id</code> from token — client cannot override</li>
+  <li>Peer products require approved access request</li>
+  <li>Company role blocked from wishlist and match-thread APIs</li>
+  <li>Peer product detail is read-only</li>
+</ul>
+
+<h2>10. Implementation Phases</h2>
+<table>
+  <tr><th>Phase</th><th>Deliverables</th></tr>
+  <tr><td>1 — Foundation</td><td>Role routing, company bottom nav, API config</td></tr>
+  <tr><td>2 — Scoped Catalog</td><td>Company home, category scope, restricted detail</td></tr>
+  <tr><td>3 — Peer Access</td><td>Company list, request/approve/reject workflow</td></tr>
+  <tr><td>4 — Company Profile</td><td>Dedicated profile UI, incoming requests</td></tr>
+  <tr><td>5 — Polish</td><td>Push notifications, analytics, QA</td></tr>
+</table>
+
+<h2>11. Acceptance Criteria</h2>
+<ol>
+  <li>User role experience unchanged</li>
+  <li>Company lands on 4-tab shell (no Match)</li>
+  <li>Company Home shows only own products</li>
+  <li>Category UI unchanged; products scoped to own company</li>
+  <li>Product detail hides wishlist &amp; embroidery match for company</li>
+  <li>Company list shows access status per peer</li>
+  <li>Request / accept / reject workflow functional</li>
+  <li>Approved peers' products viewable read-only</li>
+  <li>Separate company profile layout with full details</li>
+</ol>
+
+<h2>12. Open Questions</h2>
+<ol>
+  <li>Company-specific banners on Home?</li>
+  <li>WhatsApp share &amp; AR Match for company users?</li>
+  <li>Re-request policy after rejection?</li>
+  <li>Product create/edit in mobile v1?</li>
+  <li>Push notifications for access workflow?</li>
+</ol>
+
+<h2>13. Appendix — Existing Code Map</h2>
+<table>
+  <tr><th>Area</th><th>File path</th></tr>
+  <tr><td>Navigation</td><td>lib/view/bottomMenu/bottom_menu_screen.dart</td></tr>
+  <tr><td>Home</td><td>lib/view/home/home_screen.dart</td></tr>
+  <tr><td>Category</td><td>lib/view/category/</td></tr>
+  <tr><td>Match</td><td>lib/view/threadMatch/thread_match_screen.dart</td></tr>
+  <tr><td>Company browse</td><td>lib/view/company/</td></tr>
+  <tr><td>Product</td><td>lib/view/productDetail/</td></tr>
+  <tr><td>Profile</td><td>lib/view/profile/profile_screen.dart</td></tr>
+  <tr><td>API config</td><td>lib/app_config.dart</td></tr>
+  <tr><td>Auth model</td><td>lib/model/login_response.dart</td></tr>
+</table>
+
+<div class="footer">
+  Thredo (Threado) — Company Role PRD v1.0 · 21 May 2026 · Confidential
+</div>
+
+</body>
+</html>

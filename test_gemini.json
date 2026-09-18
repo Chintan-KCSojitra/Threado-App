@@ -1,0 +1,15 @@
+{
+  "contents": [
+    {
+      "parts": [
+        {
+          "text": "Analyze this thread product and return exactly 1 embroidery design suggestions. Requirements: keep output strictly valid JSON. Format: {\"suggestions\": [{\"title\": \"A\", \"subtitle\": \"B\", \"category\": \"C\", \"confidence\": 90, \"imagePrompt\": \"D\"}]}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.3,
+    "responseMimeType": "application/json"
+  }
+}

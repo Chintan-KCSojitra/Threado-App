@@ -1,0 +1,2 @@
+- `[x]` Fix RenderBox cast error in `company_profile_screen.dart`
+- `[x]` Verify screen initialization and sticky header logic
