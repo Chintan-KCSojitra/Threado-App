@@ -1,0 +1,554 @@
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    runs-on: macos-latest
+
+    steps:
+
+      # ==================================================
+      # 1. Checkout repository
+      # ==================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # ==================================================
+      # 2. Install Flutter
+      # ==================================================
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+
+      # ==================================================
+      # 3. Flutter dependencies
+      # ==================================================
+      - name: Flutter pub get
+        working-directory: Threado-App
+        run: |
+          set -e
+          flutter pub get
+
+
+      # ==================================================
+      # 4. CocoaPods dependencies
+      # ==================================================
+      - name: Install CocoaPods dependencies
+        working-directory: Threado-App/ios
+        run: |
+          set -e
+          pod install
+
+
+      # ==================================================
+      # 5. Install Xcode project manipulation library
+      # ==================================================
+      - name: Install xcodeproj
+        run: |
+          set -e
+          gem install xcodeproj --no-document
+          ruby -e 'require "xcodeproj"; puts "xcodeproj installed successfully"'
+
+
+      # ==================================================
+      # 6. Decode Apple signing files
+      # ==================================================
+      - name: Decode Apple signing files
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -e
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/build_profile.mobileprovision"
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          if [ ! -s "$CERTIFICATE_PATH" ]; then
+            echo "ERROR: Certificate file is empty."
+            exit 1
+          fi
+
+          if [ ! -s "$PROFILE_PATH" ]; then
+            echo "ERROR: Provisioning profile is empty."
+            exit 1
+          fi
+
+          echo "CERTIFICATE_PATH=$CERTIFICATE_PATH" >> "$GITHUB_ENV"
+          echo "PROFILE_PATH=$PROFILE_PATH" >> "$GITHUB_ENV"
+
+          echo "Apple signing files decoded successfully."
+
+
+      # ==================================================
+      # 7. Read provisioning profile
+      # ==================================================
+      - name: Read provisioning profile
+        run: |
+          set -e
+
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$PROFILE_PLIST")
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$PROFILE_PLIST")
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" "$PROFILE_PLIST")
+          APP_ID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$PROFILE_PLIST")
+          
+          # Extract Bundle ID from App ID (TeamID.BundleID)
+          BUNDLE_ID=$(printf '%s' "$APP_ID" | sed 's/^[^.]*\.//' | tr -d '\r\n')
+
+          if [ -z "$PROFILE_NAME" ] || [ -z "$PROFILE_UUID" ] || [ -z "$TEAM_ID" ] || [ -z "$BUNDLE_ID" ]; then
+            echo "ERROR: Failed to extract mandatory profile information."
+            exit 1
+          fi
+
+          echo "=========================================="
+          echo "Provisioning Profile Information"
+          echo "=========================================="
+          echo "Profile Name : $PROFILE_NAME"
+          echo "Profile UUID : $PROFILE_UUID"
+          echo "Team ID      : $TEAM_ID"
+          echo "App ID       : $APP_ID"
+          echo "Bundle ID    : $BUNDLE_ID"
+          echo "=========================================="
+
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "TEAM_ID=$TEAM_ID" >> "$GITHUB_ENV"
+          echo "BUNDLE_ID=$BUNDLE_ID" >> "$GITHUB_ENV"
+
+
+      # ==================================================
+      # 8. Triple Validation (Profile, Xcode Target, Team ID)
+      # ==================================================
+      - name: Verify provisioning profile and project
+        run: |
+          set -e
+
+          EXPECTED_BUNDLE_ID="com.app.thredo"
+
+          echo "=========================================="
+          echo "Verifying provisioning profile and project"
+          echo "=========================================="
+          echo "Profile Bundle ID : $BUNDLE_ID"
+          echo "Expected Bundle ID: $EXPECTED_BUNDLE_ID"
+          echo "Profile Team ID   : $TEAM_ID"
+          echo "=========================================="
+
+          if [ "$BUNDLE_ID" != "$EXPECTED_BUNDLE_ID" ]; then
+            echo "ERROR: Bundle ID mismatch in provisioning profile."
+            exit 1
+          fi
+
+          # Verify Runner target Bundle ID using ruby/xcodeproj
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          expected_bundle_id = 'com.app.thredo'
+          
+          project = Xcodeproj::Project.open(project_path)
+          runner_target = project.targets.find { |t| t.name == 'Runner' }
+          abort "ERROR: Runner target not found" unless runner_target
+
+          runner_target.build_configurations.each do |config|
+            actual = config.build_settings['PRODUCT_BUNDLE_IDENTIFIER']
+            if actual != expected_bundle_id
+              puts "ERROR: Bundle ID mismatch in Xcode project (#{config.name})."
+              puts "Expected: #{expected_bundle_id}, Actual: #{actual}"
+              exit 1
+            end
+          end
+          puts "SUCCESS: Xcode project Bundle ID verified."
+          RUBY
+
+          echo ""
+          echo "SUCCESS: Triple validation passed."
+
+
+      # ==================================================
+      # 9. Install provisioning profile
+      # ==================================================
+      - name: Install provisioning profile
+        run: |
+          set -e
+
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_DIR"
+
+          cp "$PROFILE_PATH" "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+
+          if [ ! -f "$PROFILE_DIR/$PROFILE_UUID.mobileprovision" ]; then
+            echo "ERROR: Provisioning profile installation failed."
+            exit 1
+          fi
+
+          echo "Provisioning profile installed: $PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+
+
+      # ==================================================
+      # 10. Create temporary signing keychain
+      # ==================================================
+      - name: Create signing keychain
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -e
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "Signing keychain created."
+
+
+      # ==================================================
+      # 11. Import Apple Distribution certificate
+      # ==================================================
+      - name: Import Apple Distribution certificate
+        env:
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -e
+
+          security import "$CERTIFICATE_PATH" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12
+
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+
+          echo "Apple Distribution certificate imported."
+
+
+      # ==================================================
+      # 12. Verify signing identity
+      # ==================================================
+      - name: Verify signing identity
+        run: |
+          set -e
+
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          IDENTITY_COUNT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -c "Apple Distribution" || true)
+
+          if [ "$IDENTITY_COUNT" -eq 0 ]; then
+            echo "ERROR: Apple Distribution identity not found."
+            exit 1
+          fi
+
+          echo "SUCCESS: Apple Distribution identity found."
+
+
+      # ==================================================
+      # 13. Generate automatic build number
+      # ==================================================
+      - name: Generate build number
+        run: |
+          set -e
+          BUILD_NUMBER=$(date +%s)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "Automatic build number: $BUILD_NUMBER"
+
+
+      # ==================================================
+      # 14. Prepare Runner for Flutter build
+      # ==================================================
+      - name: Prepare Runner for Flutter build
+        run: |
+          set -e
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          bundle_id = ENV['BUNDLE_ID']
+          team_id = ENV['TEAM_ID']
+
+          runner_target = project.targets.find { |t| t.name == 'Runner' }
+          abort "Runner target not found" unless runner_target
+
+          runner_target.build_configurations.each do |config|
+            settings = config.build_settings
+            settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id
+            settings['DEVELOPMENT_TEAM'] = team_id
+          end
+          project.save
+          puts "Runner prepared for Flutter build: #{bundle_id} / #{team_id}"
+          RUBY
+
+
+      # ==================================================
+      # 15. Prepare Flutter iOS project
+      # ==================================================
+      - name: Prepare Flutter iOS project
+        working-directory: Threado-App
+        run: |
+          set -e
+          flutter build ios --release --no-codesign --build-number "$BUILD_NUMBER"
+
+
+      # ==================================================
+      # 16. Configure ONLY Runner target signing
+      # ==================================================
+      - name: Configure Runner signing
+        run: |
+          set -e
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          team_id = ENV.fetch('TEAM_ID')
+          bundle_id = ENV.fetch('BUNDLE_ID')
+          profile_uuid = ENV.fetch('PROFILE_UUID')
+
+          project = Xcodeproj::Project.open(project_path)
+          runner_target = project.targets.find { |t| t.name == 'Runner' }
+          abort "ERROR: Runner target not found" unless runner_target
+
+          runner_target.build_configurations.each do |config|
+            settings = config.build_settings
+            settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id
+            settings['DEVELOPMENT_TEAM'] = team_id
+            settings['CODE_SIGN_STYLE'] = 'Manual'
+            settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
+            settings['PROVISIONING_PROFILE_SPECIFIER'] = profile_uuid
+            settings['PROVISIONING_PROFILE'] = profile_uuid
+
+            settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Distribution'
+            settings['PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]'] = profile_uuid
+            settings['PROVISIONING_PROFILE[sdk=iphoneos*]'] = profile_uuid
+            
+            settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
+            puts "Configured #{config.name}"
+          end
+          project.save
+          puts "Runner signing configured."
+          RUBY
+
+
+      # ==================================================
+      # 17. Verify Runner configuration
+      # ==================================================
+      - name: Verify Runner configuration
+        run: |
+          set -e
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('Threado-App/ios/Runner.xcodeproj')
+          runner_target = project.targets.find { |t| t.name == 'Runner' }
+          abort "ERROR: Runner target not found" unless runner_target
+
+          runner_target.build_configurations.each do |config|
+            settings = config.build_settings
+            puts "Configuration: #{config.name}"
+            
+            abort "ERROR: Bundle ID mismatch" if settings['PRODUCT_BUNDLE_IDENTIFIER'] != ENV.fetch('BUNDLE_ID')
+            abort "ERROR: Team ID mismatch" if settings['DEVELOPMENT_TEAM'] != ENV.fetch('TEAM_ID')
+            abort "ERROR: Sign Style not Manual" if settings['CODE_SIGN_STYLE'] != 'Manual'
+            abort "ERROR: Profile UUID mismatch" if settings['PROVISIONING_PROFILE_SPECIFIER'] != ENV.fetch('PROFILE_UUID')
+            abort "ERROR: AppIcon mismatch" if settings['ASSETCATALOG_COMPILER_APPICON_NAME'] != 'AppIcon'
+          end
+          puts "SUCCESS: Runner configuration verified."
+          RUBY
+
+
+      # ==================================================
+      # 18. Create ExportOptions.plist
+      # ==================================================
+      - name: Create ExportOptions.plist
+        run: |
+          set -e
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${BUNDLE_ID}</key>
+                  <string>${PROFILE_UUID}</string>
+              </dict>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+          echo "ExportOptions.plist created."
+
+
+      # ==================================================
+      # 19. Verify installed provisioning profile
+      # ==================================================
+      - name: Verify installed provisioning profile
+        run: |
+          set -e
+          PROFILE_FILE="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          if [ ! -f "$PROFILE_FILE" ]; then
+            echo "ERROR: Provisioning profile is missing from library."
+            exit 1
+          fi
+          
+          INSTALLED_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$RUNNER_TEMP/profile.plist")
+          if [ "$INSTALLED_UUID" != "$PROFILE_UUID" ]; then
+            echo "ERROR: Installed UUID mismatch."
+            exit 1
+          fi
+          echo "SUCCESS: Exact provisioning profile is installed."
+
+
+      # ==================================================
+      # 20. Verify Xcode signing settings
+      # ==================================================
+      - name: Verify Xcode signing settings
+        run: |
+          set -e
+          xcodebuild -workspace Threado-App/ios/Runner.xcworkspace \
+            -scheme Runner -configuration Release -sdk iphoneos -showBuildSettings \
+            | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|ASSETCATALOG_COMPILER_APPICON_NAME"
+
+
+      # ==================================================
+      # 21. Archive iOS application
+      # ==================================================
+      - name: Archive iOS application
+        run: |
+          set -e
+          xcodebuild -workspace Threado-App/ios/Runner.xcworkspace \
+            -scheme Runner -configuration Release -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            archive
+
+
+      # ==================================================
+      # 22. Verify archive
+      # ==================================================
+      - name: Verify archive
+        run: |
+          set -e
+          ARCHIVE_PATH="$RUNNER_TEMP/Runner.xcarchive"
+          if [ ! -d "$ARCHIVE_PATH" ]; then
+            echo "ERROR: Archive was not created."
+            exit 1
+          fi
+          if [ ! -d "$ARCHIVE_PATH/Products/Applications/Runner.app" ]; then
+            echo "ERROR: Runner.app was not found in archive."
+            exit 1
+          fi
+          echo "Archive verified successfully."
+
+
+      # ==================================================
+      # 23. Export IPA
+      # ==================================================
+      - name: Export IPA
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/export"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export"
+          echo "IPA export completed."
+
+
+      # ==================================================
+      # 24. Find IPA
+      # ==================================================
+      - name: Find IPA
+        run: |
+          set -e
+          IPA_PATH=$(find "$RUNNER_TEMP/export" -name "*.ipa" -print -quit)
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: IPA was not generated."
+            exit 1
+          fi
+          echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
+          echo "IPA generated: $IPA_PATH"
+
+
+      # ==================================================
+      # 25. Upload to TestFlight
+      # ==================================================
+      - name: Upload to TestFlight
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$IPA_PATH" ] || [ ! -f "$IPA_PATH" ]; then
+            echo "ERROR: IPA file not found for upload."
+            exit 1
+          fi
+
+          echo "=========================================="
+          echo "Uploading IPA to App Store Connect"
+          echo "=========================================="
+          echo "Bundle ID: $BUNDLE_ID"
+          echo "Build number: $BUILD_NUMBER"
+          echo "IPA: $IPA_PATH"
+          echo "=========================================="
+
+          xcrun altool --upload-app --type ios --file "$IPA_PATH" \
+            --username "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+          echo "Upload completed successfully."
+
+
+      # ==================================================
+      # 26. Comprehensive Cleanup
+      # ==================================================
+      - name: Comprehensive Cleanup
+        if: always()
+        run: |
+          echo "Cleaning up temporary signing resources..."
+          
+          # Delete temporary keychain
+          if [ -n "$KEYCHAIN_PATH" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          
+          # Delete decoded certificate and profile
+          rm -f "$RUNNER_TEMP/build_certificate.p12" || true
+          rm -f "$RUNNER_TEMP/build_profile.mobileprovision" || true
+          rm -f "$RUNNER_TEMP/profile.plist" || true
+          rm -f "$RUNNER_TEMP/installed-profile.plist" || true
+          
+          # Delete installed provisioning profile
+          if [ -n "$PROFILE_UUID" ]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision" || true
+          fi
+          
+          echo "Cleanup completed."
