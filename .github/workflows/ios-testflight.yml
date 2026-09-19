@@ -137,7 +137,7 @@ jobs:
         run: |
           set -e
 
-          EXPECTED_BUNDLE_ID="com.app.thredo"
+          EXPECTED_BUNDLE_ID="com.app.threado"
 
           echo "=========================================="
           echo "Verifying provisioning profile and project"
@@ -156,7 +156,7 @@ jobs:
           ruby <<'RUBY'
           require 'xcodeproj'
           project_path = 'ios/Runner.xcodeproj'
-          expected_bundle_id = 'com.app.thredo'
+          expected_bundle_id = 'com.app.threado'
           
           project = Xcodeproj::Project.open(project_path)
           runner_target = project.targets.find { |t| t.name == 'Runner' }
