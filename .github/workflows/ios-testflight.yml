@@ -33,7 +33,6 @@ jobs:
       # 3. Flutter dependencies
       # ==================================================
       - name: Flutter pub get
-        working-directory: Threado-App
         run: |
           set -e
           flutter pub get
@@ -43,7 +42,7 @@ jobs:
       # 4. CocoaPods dependencies
       # ==================================================
       - name: Install CocoaPods dependencies
-        working-directory: Threado-App/ios
+        working-directory: ios
         run: |
           set -e
           pod install
@@ -156,7 +155,7 @@ jobs:
           # Verify Runner target Bundle ID using ruby/xcodeproj
           ruby <<'RUBY'
           require 'xcodeproj'
-          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          project_path = 'ios/Runner.xcodeproj'
           expected_bundle_id = 'com.app.thredo'
           
           project = Xcodeproj::Project.open(project_path)
@@ -284,7 +283,7 @@ jobs:
           set -e
           ruby <<'RUBY'
           require 'xcodeproj'
-          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          project_path = 'ios/Runner.xcodeproj'
           project = Xcodeproj::Project.open(project_path)
           bundle_id = ENV['BUNDLE_ID']
           team_id = ENV['TEAM_ID']
@@ -306,7 +305,6 @@ jobs:
       # 15. Prepare Flutter iOS project
       # ==================================================
       - name: Prepare Flutter iOS project
-        working-directory: Threado-App
         run: |
           set -e
           flutter build ios --release --no-codesign --build-number "$BUILD_NUMBER"
@@ -320,7 +318,7 @@ jobs:
           set -e
           ruby <<'RUBY'
           require 'xcodeproj'
-          project_path = 'Threado-App/ios/Runner.xcodeproj'
+          project_path = 'ios/Runner.xcodeproj'
           team_id = ENV.fetch('TEAM_ID')
           bundle_id = ENV.fetch('BUNDLE_ID')
           profile_uuid = ENV.fetch('PROFILE_UUID')
@@ -358,7 +356,7 @@ jobs:
           set -e
           ruby <<'RUBY'
           require 'xcodeproj'
-          project = Xcodeproj::Project.open('Threado-App/ios/Runner.xcodeproj')
+          project = Xcodeproj::Project.open('ios/Runner.xcodeproj')
           runner_target = project.targets.find { |t| t.name == 'Runner' }
           abort "ERROR: Runner target not found" unless runner_target
 
@@ -434,7 +432,7 @@ jobs:
       - name: Verify Xcode signing settings
         run: |
           set -e
-          xcodebuild -workspace Threado-App/ios/Runner.xcworkspace \
+          xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner -configuration Release -sdk iphoneos -showBuildSettings \
             | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|ASSETCATALOG_COMPILER_APPICON_NAME"
 
@@ -445,7 +443,7 @@ jobs:
       - name: Archive iOS application
         run: |
           set -e
-          xcodebuild -workspace Threado-App/ios/Runner.xcworkspace \
+          xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner -configuration Release -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
