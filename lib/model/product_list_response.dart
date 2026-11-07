@@ -1,34 +1,31 @@
 class ProductListResponse {
-  ProductListResponse({
-      this.success, 
-      this.message, 
-      this.data, 
-      this.pagination,});
+  ProductListResponse({this.success, this.message, this.data, this.pagination});
 
   ProductListResponse.fromJson(dynamic json) {
-    success = json['success'];
-    message = json['message'];
-    if (json['data'] != null) {
+    if (json is! Map) return;
+    success = json['success'] as bool?;
+    message = json['message'] as String?;
+    if (json['data'] is List) {
       data = [];
-      json['data'].forEach((v) {
-        data?.add(ProductListData.fromJson(v));
-      });
+      for (final v in (json['data'] as List)) {
+        if (v != null) {
+          data?.add(ProductListData.fromJson(v));
+        }
+      }
     }
-    pagination = json['pagination'] != null ? Pagination.fromJson(json['pagination']) : null;
+    pagination = (json['pagination'] is Map) ? Pagination.fromJson(json['pagination']) : null;
   }
   bool? success;
   String? message;
   List<ProductListData>? data;
   Pagination? pagination;
-ProductListResponse copyWith({  bool? success,
-  String? message,
-  List<ProductListData>? data,
-  Pagination? pagination,
-}) => ProductListResponse(  success: success ?? this.success,
-  message: message ?? this.message,
-  data: data ?? this.data,
-  pagination: pagination ?? this.pagination,
-);
+  ProductListResponse copyWith({bool? success, String? message, List<ProductListData>? data, Pagination? pagination}) =>
+      ProductListResponse(
+        success: success ?? this.success,
+        message: message ?? this.message,
+        data: data ?? this.data,
+        pagination: pagination ?? this.pagination,
+      );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['success'] = success;
@@ -41,25 +38,19 @@ ProductListResponse copyWith({  bool? success,
     }
     return map;
   }
-
 }
 
 class Pagination {
-  Pagination({
-      this.page, 
-      this.perPage, 
-      this.total, 
-      this.totalPages, 
-      this.hasNext, 
-      this.hasPrev,});
+  Pagination({this.page, this.perPage, this.total, this.totalPages, this.hasNext, this.hasPrev});
 
   Pagination.fromJson(dynamic json) {
-    page = json['page'];
-    perPage = json['per_page'];
-    total = json['total'];
-    totalPages = json['total_pages'];
-    hasNext = json['has_next'];
-    hasPrev = json['has_prev'];
+    if (json is! Map) return;
+    page = json['page'] as num?;
+    perPage = json['per_page'] as num?;
+    total = json['total'] as num?;
+    totalPages = json['total_pages'] as num?;
+    hasNext = json['has_next'] as bool?;
+    hasPrev = json['has_prev'] as bool?;
   }
   num? page;
   num? perPage;
@@ -67,19 +58,15 @@ class Pagination {
   num? totalPages;
   bool? hasNext;
   bool? hasPrev;
-Pagination copyWith({  num? page,
-  num? perPage,
-  num? total,
-  num? totalPages,
-  bool? hasNext,
-  bool? hasPrev,
-}) => Pagination(  page: page ?? this.page,
-  perPage: perPage ?? this.perPage,
-  total: total ?? this.total,
-  totalPages: totalPages ?? this.totalPages,
-  hasNext: hasNext ?? this.hasNext,
-  hasPrev: hasPrev ?? this.hasPrev,
-);
+  Pagination copyWith({num? page, num? perPage, num? total, num? totalPages, bool? hasNext, bool? hasPrev}) =>
+      Pagination(
+        page: page ?? this.page,
+        perPage: perPage ?? this.perPage,
+        total: total ?? this.total,
+        totalPages: totalPages ?? this.totalPages,
+        hasNext: hasNext ?? this.hasNext,
+        hasPrev: hasPrev ?? this.hasPrev,
+      );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['page'] = page;
@@ -90,76 +77,89 @@ Pagination copyWith({  num? page,
     map['has_prev'] = hasPrev;
     return map;
   }
-
 }
 
 class ProductListData {
   ProductListData({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.price, 
-      this.stock, 
-      this.isActive, 
-      this.companyId, 
-      this.categoryId, 
-      this.category, 
-      this.company, 
-      this.createdAt, 
-      this.media, 
-      this.colors, 
-      this.materials, 
-      this.denier, 
-      this.meter, 
-      this.packing, 
-      this.pis, 
-      this.grossWeight, 
-      this.netWeight, 
-      this.tubeSize, 
-      this.minQuantity, 
-      this.stockDetails, 
-      this.manufacturingTime,});
+    this.id,
+    this.name,
+    this.description,
+    this.price,
+    this.stock,
+    this.isActive,
+    this.companyId,
+    this.categoryId,
+    this.category,
+    this.company,
+    this.createdAt,
+    this.media,
+    this.colors,
+    this.materials,
+    this.denier,
+    this.meter,
+    this.packing,
+    this.pis,
+    this.grossWeight,
+    this.netWeight,
+    this.tubeSize,
+    this.minQuantity,
+    this.stockDetails,
+    this.manufacturingTime,
+  });
 
   ProductListData.fromJson(dynamic json) {
-    id = json['id'];
-    name = json['name'];
-    description = json['description'];
-    price = json['price'];
-    stock = json['stock'];
-    isActive = json['is_active'];
-    companyId = json['company_id'];
-    categoryId = json['category_id'];
+    if (json is! Map) return;
+    id = json['id']?.toString();
+    name = json['name']?.toString();
+    description = json['description']?.toString();
+    price = json['price'] is num
+        ? json['price']
+        : (json['price'] != null ? num.tryParse(json['price'].toString()) : null);
+    stock = json['stock'] is num
+        ? json['stock']
+        : (json['stock'] != null ? num.tryParse(json['stock'].toString()) : null);
+    isActive = json['is_active'] is bool ? json['is_active'] : (json['is_active']?.toString().toLowerCase() == 'true');
+    companyId = json['company_id']?.toString();
+    categoryId = json['category_id']?.toString();
     category = json['category'] != null ? Category.fromJson(json['category']) : null;
     company = json['company'] != null ? Company.fromJson(json['company']) : null;
-    createdAt = json['created_at'];
-    if (json['media'] != null) {
+    createdAt = json['created_at']?.toString();
+    if (json['media'] != null && json['media'] is List) {
       media = [];
-      json['media'].forEach((v) {
+      for (final v in (json['media'] as List)) {
         media?.add(Media.fromJson(v));
-      });
+      }
     }
-    if (json['colors'] != null) {
+    if (json['colors'] != null && json['colors'] is List) {
       colors = [];
-      json['colors'].forEach((v) {
+      for (final v in (json['colors'] as List)) {
         colors?.add(Colors.fromJson(v));
-      });
+      }
     }
-    if (json['materials'] != null) {
+    if (json['materials'] != null && json['materials'] is List) {
       materials = [];
-      json['materials'].forEach((v) {
+      for (final v in (json['materials'] as List)) {
         materials?.add(Materials.fromJson(v));
-      });
+      }
     }
-    denier = json['denier'];
-    meter = json['meter'];
-    packing = json['packing'];
-    pis = json['pis'];
-    grossWeight = json['gross_weight'];
-    netWeight = json['net_weight'];
-    tubeSize = json['tube_size'];
-    minQuantity = json['min_quantity'];
-    stockDetails = json['stock_details'];
-    manufacturingTime = json['manufacturing_time'];
+    denier = json['denier']?.toString();
+    meter = json['meter'] is num
+        ? json['meter']
+        : (json['meter'] != null ? num.tryParse(json['meter'].toString()) : null);
+    packing = json['packing']?.toString();
+    pis = json['pis']?.toString();
+    grossWeight = json['gross_weight'] is num
+        ? json['gross_weight']
+        : (json['gross_weight'] != null ? num.tryParse(json['gross_weight'].toString()) : null);
+    netWeight = json['net_weight'] is num
+        ? json['net_weight']
+        : (json['net_weight'] != null ? num.tryParse(json['net_weight'].toString()) : null);
+    tubeSize = json['tube_size']?.toString();
+    minQuantity = json['min_quantity'] is num
+        ? json['min_quantity']
+        : (json['min_quantity'] != null ? num.tryParse(json['min_quantity'].toString()) : null);
+    stockDetails = json['stock_details']?.toString();
+    manufacturingTime = json['manufacturing_time']?.toString();
   }
   String? id;
   String? name;
@@ -185,55 +185,57 @@ class ProductListData {
   num? minQuantity;
   String? stockDetails;
   String? manufacturingTime;
-ProductListData copyWith({  String? id,
-  String? name,
-  String? description,
-  num? price,
-  num? stock,
-  bool? isActive,
-  String? companyId,
-  String? categoryId,
-  Category? category,
-  Company? company,
-  String? createdAt,
-  List<Media>? media,
-  List<Colors>? colors,
-  List<Materials>? materials,
-  String? denier,
-  num? meter,
-  String? packing,
-  String? pis,
-  num? grossWeight,
-  num? netWeight,
-  String? tubeSize,
-  num? minQuantity,
-  String? stockDetails,
-  String? manufacturingTime,
-}) => ProductListData(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  price: price ?? this.price,
-  stock: stock ?? this.stock,
-  isActive: isActive ?? this.isActive,
-  companyId: companyId ?? this.companyId,
-  categoryId: categoryId ?? this.categoryId,
-  category: category ?? this.category,
-  company: company ?? this.company,
-  createdAt: createdAt ?? this.createdAt,
-  media: media ?? this.media,
-  colors: colors ?? this.colors,
-  materials: materials ?? this.materials,
-  denier: denier ?? this.denier,
-  meter: meter ?? this.meter,
-  packing: packing ?? this.packing,
-  pis: pis ?? this.pis,
-  grossWeight: grossWeight ?? this.grossWeight,
-  netWeight: netWeight ?? this.netWeight,
-  tubeSize: tubeSize ?? this.tubeSize,
-  minQuantity: minQuantity ?? this.minQuantity,
-  stockDetails: stockDetails ?? this.stockDetails,
-  manufacturingTime: manufacturingTime ?? this.manufacturingTime,
-);
+  ProductListData copyWith({
+    String? id,
+    String? name,
+    String? description,
+    num? price,
+    num? stock,
+    bool? isActive,
+    String? companyId,
+    String? categoryId,
+    Category? category,
+    Company? company,
+    String? createdAt,
+    List<Media>? media,
+    List<Colors>? colors,
+    List<Materials>? materials,
+    String? denier,
+    num? meter,
+    String? packing,
+    String? pis,
+    num? grossWeight,
+    num? netWeight,
+    String? tubeSize,
+    num? minQuantity,
+    String? stockDetails,
+    String? manufacturingTime,
+  }) => ProductListData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    price: price ?? this.price,
+    stock: stock ?? this.stock,
+    isActive: isActive ?? this.isActive,
+    companyId: companyId ?? this.companyId,
+    categoryId: categoryId ?? this.categoryId,
+    category: category ?? this.category,
+    company: company ?? this.company,
+    createdAt: createdAt ?? this.createdAt,
+    media: media ?? this.media,
+    colors: colors ?? this.colors,
+    materials: materials ?? this.materials,
+    denier: denier ?? this.denier,
+    meter: meter ?? this.meter,
+    packing: packing ?? this.packing,
+    pis: pis ?? this.pis,
+    grossWeight: grossWeight ?? this.grossWeight,
+    netWeight: netWeight ?? this.netWeight,
+    tubeSize: tubeSize ?? this.tubeSize,
+    minQuantity: minQuantity ?? this.minQuantity,
+    stockDetails: stockDetails ?? this.stockDetails,
+    manufacturingTime: manufacturingTime ?? this.manufacturingTime,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -272,15 +274,10 @@ ProductListData copyWith({  String? id,
     map['manufacturing_time'] = manufacturingTime;
     return map;
   }
-
 }
 
 class Materials {
-  Materials({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.isActive,});
+  Materials({this.id, this.name, this.description, this.isActive});
 
   Materials.fromJson(dynamic json) {
     id = json['id'];
@@ -292,15 +289,12 @@ class Materials {
   String? name;
   String? description;
   bool? isActive;
-Materials copyWith({  String? id,
-  String? name,
-  String? description,
-  bool? isActive,
-}) => Materials(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  isActive: isActive ?? this.isActive,
-);
+  Materials copyWith({String? id, String? name, String? description, bool? isActive}) => Materials(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    isActive: isActive ?? this.isActive,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -309,15 +303,10 @@ Materials copyWith({  String? id,
     map['is_active'] = isActive;
     return map;
   }
-
 }
 
 class Colors {
-  Colors({
-      this.id, 
-      this.name, 
-      this.hexCode, 
-      this.isActive,});
+  Colors({this.id, this.name, this.hexCode, this.isActive});
 
   Colors.fromJson(dynamic json) {
     id = json['id'];
@@ -329,15 +318,12 @@ class Colors {
   String? name;
   String? hexCode;
   bool? isActive;
-Colors copyWith({  String? id,
-  String? name,
-  String? hexCode,
-  bool? isActive,
-}) => Colors(  id: id ?? this.id,
-  name: name ?? this.name,
-  hexCode: hexCode ?? this.hexCode,
-  isActive: isActive ?? this.isActive,
-);
+  Colors copyWith({String? id, String? name, String? hexCode, bool? isActive}) => Colors(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    hexCode: hexCode ?? this.hexCode,
+    isActive: isActive ?? this.isActive,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -346,18 +332,10 @@ Colors copyWith({  String? id,
     map['is_active'] = isActive;
     return map;
   }
-
 }
 
 class Media {
-  Media({
-      this.id, 
-      this.mediaType, 
-      this.url, 
-      this.thumbnailUrl, 
-      this.title, 
-      this.isPrimary, 
-      this.sortOrder,});
+  Media({this.id, this.mediaType, this.url, this.thumbnailUrl, this.title, this.isPrimary, this.sortOrder});
 
   Media.fromJson(dynamic json) {
     id = json['id'];
@@ -375,21 +353,23 @@ class Media {
   dynamic title;
   bool? isPrimary;
   num? sortOrder;
-Media copyWith({  String? id,
-  String? mediaType,
-  String? url,
-  dynamic thumbnailUrl,
-  dynamic title,
-  bool? isPrimary,
-  num? sortOrder,
-}) => Media(  id: id ?? this.id,
-  mediaType: mediaType ?? this.mediaType,
-  url: url ?? this.url,
-  thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
-  title: title ?? this.title,
-  isPrimary: isPrimary ?? this.isPrimary,
-  sortOrder: sortOrder ?? this.sortOrder,
-);
+  Media copyWith({
+    String? id,
+    String? mediaType,
+    String? url,
+    dynamic thumbnailUrl,
+    dynamic title,
+    bool? isPrimary,
+    num? sortOrder,
+  }) => Media(
+    id: id ?? this.id,
+    mediaType: mediaType ?? this.mediaType,
+    url: url ?? this.url,
+    thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+    title: title ?? this.title,
+    isPrimary: isPrimary ?? this.isPrimary,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -401,32 +381,32 @@ Media copyWith({  String? id,
     map['sort_order'] = sortOrder;
     return map;
   }
-
 }
 
 class Company {
   Company({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.logoUrl, 
-      this.bannerUrl, 
-      this.address, 
-      this.city, 
-      this.state, 
-      this.country, 
-      this.pincode, 
-      this.email, 
-      this.phone, 
-      this.website, 
-      this.isActive, 
-      this.instagramUrl, 
-      this.facebookUrl, 
-      this.twitterUrl, 
-      this.youtubeUrl, 
-      this.linkedinUrl, 
-      this.whatsappNumber, 
-      this.createdAt,});
+    this.id,
+    this.name,
+    this.description,
+    this.logoUrl,
+    this.bannerUrl,
+    this.address,
+    this.city,
+    this.state,
+    this.country,
+    this.pincode,
+    this.email,
+    this.phone,
+    this.website,
+    this.isActive,
+    this.instagramUrl,
+    this.facebookUrl,
+    this.twitterUrl,
+    this.youtubeUrl,
+    this.linkedinUrl,
+    this.whatsappNumber,
+    this.createdAt,
+  });
 
   Company.fromJson(dynamic json) {
     id = json['id'];
@@ -472,49 +452,51 @@ class Company {
   String? linkedinUrl;
   String? whatsappNumber;
   String? createdAt;
-Company copyWith({  String? id,
-  String? name,
-  String? description,
-  String? logoUrl,
-  String? bannerUrl,
-  String? address,
-  String? city,
-  String? state,
-  String? country,
-  String? pincode,
-  String? email,
-  String? phone,
-  String? website,
-  bool? isActive,
-  String? instagramUrl,
-  String? facebookUrl,
-  String? twitterUrl,
-  String? youtubeUrl,
-  String? linkedinUrl,
-  String? whatsappNumber,
-  String? createdAt,
-}) => Company(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  logoUrl: logoUrl ?? this.logoUrl,
-  bannerUrl: bannerUrl ?? this.bannerUrl,
-  address: address ?? this.address,
-  city: city ?? this.city,
-  state: state ?? this.state,
-  country: country ?? this.country,
-  pincode: pincode ?? this.pincode,
-  email: email ?? this.email,
-  phone: phone ?? this.phone,
-  website: website ?? this.website,
-  isActive: isActive ?? this.isActive,
-  instagramUrl: instagramUrl ?? this.instagramUrl,
-  facebookUrl: facebookUrl ?? this.facebookUrl,
-  twitterUrl: twitterUrl ?? this.twitterUrl,
-  youtubeUrl: youtubeUrl ?? this.youtubeUrl,
-  linkedinUrl: linkedinUrl ?? this.linkedinUrl,
-  whatsappNumber: whatsappNumber ?? this.whatsappNumber,
-  createdAt: createdAt ?? this.createdAt,
-);
+  Company copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? logoUrl,
+    String? bannerUrl,
+    String? address,
+    String? city,
+    String? state,
+    String? country,
+    String? pincode,
+    String? email,
+    String? phone,
+    String? website,
+    bool? isActive,
+    String? instagramUrl,
+    String? facebookUrl,
+    String? twitterUrl,
+    String? youtubeUrl,
+    String? linkedinUrl,
+    String? whatsappNumber,
+    String? createdAt,
+  }) => Company(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    logoUrl: logoUrl ?? this.logoUrl,
+    bannerUrl: bannerUrl ?? this.bannerUrl,
+    address: address ?? this.address,
+    city: city ?? this.city,
+    state: state ?? this.state,
+    country: country ?? this.country,
+    pincode: pincode ?? this.pincode,
+    email: email ?? this.email,
+    phone: phone ?? this.phone,
+    website: website ?? this.website,
+    isActive: isActive ?? this.isActive,
+    instagramUrl: instagramUrl ?? this.instagramUrl,
+    facebookUrl: facebookUrl ?? this.facebookUrl,
+    twitterUrl: twitterUrl ?? this.twitterUrl,
+    youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+    linkedinUrl: linkedinUrl ?? this.linkedinUrl,
+    whatsappNumber: whatsappNumber ?? this.whatsappNumber,
+    createdAt: createdAt ?? this.createdAt,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -540,17 +522,10 @@ Company copyWith({  String? id,
     map['created_at'] = createdAt;
     return map;
   }
-
 }
 
 class Category {
-  Category({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.imageUrl, 
-      this.isActive, 
-      this.createdAt,});
+  Category({this.id, this.name, this.description, this.imageUrl, this.isActive, this.createdAt});
 
   Category.fromJson(dynamic json) {
     id = json['id'];
@@ -566,19 +541,21 @@ class Category {
   String? imageUrl;
   bool? isActive;
   String? createdAt;
-Category copyWith({  String? id,
-  String? name,
-  String? description,
-  String? imageUrl,
-  bool? isActive,
-  String? createdAt,
-}) => Category(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  imageUrl: imageUrl ?? this.imageUrl,
-  isActive: isActive ?? this.isActive,
-  createdAt: createdAt ?? this.createdAt,
-);
+  Category copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? imageUrl,
+    bool? isActive,
+    String? createdAt,
+  }) => Category(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    imageUrl: imageUrl ?? this.imageUrl,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -589,5 +566,4 @@ Category copyWith({  String? id,
     map['created_at'] = createdAt;
     return map;
   }
-
 }

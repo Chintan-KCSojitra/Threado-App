@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:thredo/widget/app_cached_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,8 +15,9 @@ import 'package:thredo/res/style.dart';
 import 'package:thredo/utils/navigation_utils.dart';
 import 'package:thredo/view/company/company_profile_screen.dart';
 import 'package:thredo/view/company/cubit/company_cubit.dart';
-import 'package:thredo/widget/edit_text_widget.dart';
+import 'package:thredo/widget/app_cached_image.dart';
 import 'package:thredo/widget/app_loader.dart';
+import 'package:thredo/widget/edit_text_widget.dart';
 import 'package:thredo/widget/text_widget.dart';
 
 class CompanyScreen extends StatefulWidget {
@@ -45,8 +45,13 @@ class _CompanyScreenState extends BaseStatefulWidgetState<CompanyScreen> {
         if (last.length < CompanyCubit.pageSize) return null;
         return pages.fold<int>(1, (total, page) => total + page.length);
       },
-      fetchPage: (pageKey) =>
-          _companyCubit.fetchCompaniesPage(pageKey: pageKey),
+      fetchPage: (pageKey) async {
+        try {
+          return await _companyCubit.fetchCompaniesPage(pageKey: pageKey);
+        } catch (_) {
+          return <CompanyListData>[];
+        }
+      },
     );
   }
 
@@ -105,19 +110,12 @@ class _CompanyScreenState extends BaseStatefulWidgetState<CompanyScreen> {
         children: [
           TextWidget(
             text: l10n.navCompany,
-            textStyle: BaseTextStyle.text700.copyWith(
-              fontSize: 22.sp,
-              color: color09064A,
-              letterSpacing: 0.4,
-            ),
+            textStyle: BaseTextStyle.text700.copyWith(fontSize: 22.sp, color: color09064A, letterSpacing: 0.4),
           ),
           SizedBox(height: 2.h),
           TextWidget(
             text: 'Discover verified thread suppliers',
-            textStyle: BaseTextStyle.text400.copyWith(
-              fontSize: 12.sp,
-              color: color79747E,
-            ),
+            textStyle: BaseTextStyle.text400.copyWith(fontSize: 12.sp, color: color79747E),
           ),
         ],
       ),
@@ -160,13 +158,10 @@ class _CompanyScreenState extends BaseStatefulWidgetState<CompanyScreen> {
             state: state,
             fetchNextPage: fetchNextPage,
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             builderDelegate: PagedChildBuilderDelegate<CompanyListData>(
               itemBuilder: (_, item, index) => _CompanyCard(company: item),
-              firstPageProgressIndicatorBuilder: (_) =>
-                  _buildSkeletonList(),
+              firstPageProgressIndicatorBuilder: (_) => _buildSkeletonList(),
               newPageProgressIndicatorBuilder: (_) => Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.h),
                 child: const AppLoader.small(accentColor: colorCEAB8D),
@@ -207,10 +202,7 @@ class _CompanyScreenState extends BaseStatefulWidgetState<CompanyScreen> {
             SizedBox(height: 12.h),
             TextWidget(
               text: 'No companies found',
-              textStyle: BaseTextStyle.text400.copyWith(
-                fontSize: 14.sp,
-                color: color79747E,
-              ),
+              textStyle: BaseTextStyle.text400.copyWith(fontSize: 14.sp, color: color79747E),
             ),
           ],
         ),
@@ -225,37 +217,21 @@ class _CompanyScreenState extends BaseStatefulWidgetState<CompanyScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.wifi_off_rounded,
-              size: 48.sp,
-              color: colorD9D9D9,
-            ),
+            Icon(Icons.wifi_off_rounded, size: 48.sp, color: colorD9D9D9),
             SizedBox(height: 12.h),
             TextWidget(
               text: 'Something went wrong',
-              textStyle: BaseTextStyle.text400.copyWith(
-                fontSize: 14.sp,
-                color: color79747E,
-              ),
+              textStyle: BaseTextStyle.text400.copyWith(fontSize: 14.sp, color: color79747E),
             ),
             SizedBox(height: 16.h),
             GestureDetector(
               onTap: _onRefresh,
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 24.w,
-                  vertical: 10.h,
-                ),
-                decoration: BoxDecoration(
-                  color: colorCEAB8D,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+                decoration: BoxDecoration(color: colorCEAB8D, borderRadius: BorderRadius.circular(12.r)),
                 child: TextWidget(
                   text: 'Try Again',
-                  textStyle: BaseTextStyle.text600.copyWith(
-                    fontSize: 13.sp,
-                    color: colorWhite,
-                  ),
+                  textStyle: BaseTextStyle.text600.copyWith(fontSize: 13.sp, color: colorWhite),
                 ),
               ),
             ),
@@ -278,33 +254,25 @@ class _CompanyCard extends StatelessWidget {
     final logoUrl = (company.logoUrl ?? '').toString().trim();
     final name = (company.name ?? '').trim().isEmpty ? 'Company' : company.name!;
 
-    final location = [company.city, company.state, company.country]
-        .whereType<String>()
-        .where((v) => v.trim().isNotEmpty)
-        .join(', ');
+    final location = [
+      company.city,
+      company.state,
+      company.country,
+    ].whereType<String>().where((v) => v.trim().isNotEmpty).join(', ');
 
     final rating = company.averageRating ?? 0.0;
     final reviewCount = company.reviewCount ?? 0;
     final hasRating = rating > 0;
 
     return GestureDetector(
-      onTap: () => navigate(
-        enterPage: CompanyProfileScreen(
-          company: company,
-          isCompanyPortalProfile: true,
-        ),
-      ),
+      onTap: () => navigate(enterPage: CompanyProfileScreen(company: company, isCompanyPortalProfile: true)),
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
         decoration: BoxDecoration(
           color: colorWhite,
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
           ],
         ),
         child: Padding(
@@ -325,10 +293,7 @@ class _CompanyCard extends StatelessWidget {
                       text: name,
                       maxLines: 1,
                       textOverflow: TextOverflow.ellipsis,
-                      textStyle: BaseTextStyle.text600.copyWith(
-                        fontSize: 15.sp,
-                        color: color09064A,
-                      ),
+                      textStyle: BaseTextStyle.text600.copyWith(fontSize: 15.sp, color: color09064A),
                     ),
 
                     // Location
@@ -336,21 +301,14 @@ class _CompanyCard extends StatelessWidget {
                       SizedBox(height: 3.h),
                       Row(
                         children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 12.sp,
-                            color: color79747E,
-                          ),
+                          Icon(Icons.location_on_outlined, size: 12.sp, color: color79747E),
                           SizedBox(width: 3.w),
                           Expanded(
                             child: TextWidget(
                               text: location,
                               maxLines: 1,
                               textOverflow: TextOverflow.ellipsis,
-                              textStyle: BaseTextStyle.text400.copyWith(
-                                fontSize: 11.sp,
-                                color: color79747E,
-                              ),
+                              textStyle: BaseTextStyle.text400.copyWith(fontSize: 11.sp, color: color79747E),
                             ),
                           ),
                         ],
@@ -365,31 +323,21 @@ class _CompanyCard extends StatelessWidget {
                           ...List.generate(5, (i) {
                             final filled = i < rating.round();
                             return Icon(
-                              filled
-                                  ? Icons.star_rounded
-                                  : Icons.star_outline_rounded,
+                              filled ? Icons.star_rounded : Icons.star_outline_rounded,
                               size: 13.sp,
-                              color: filled
-                                  ? colorCEAB8D
-                                  : colorD9D9D9,
+                              color: filled ? colorCEAB8D : colorD9D9D9,
                             );
                           }),
                           SizedBox(width: 5.w),
                           TextWidget(
                             text: rating.toStringAsFixed(1),
-                            textStyle: BaseTextStyle.text600.copyWith(
-                              fontSize: 11.sp,
-                              color: colorCEAB8D,
-                            ),
+                            textStyle: BaseTextStyle.text600.copyWith(fontSize: 11.sp, color: colorCEAB8D),
                           ),
                           if (reviewCount > 0) ...[
                             SizedBox(width: 3.w),
                             TextWidget(
                               text: '($reviewCount)',
-                              textStyle: BaseTextStyle.text400.copyWith(
-                                fontSize: 11.sp,
-                                color: color79747E,
-                              ),
+                              textStyle: BaseTextStyle.text400.copyWith(fontSize: 11.sp, color: color79747E),
                             ),
                           ],
                         ],
@@ -404,15 +352,8 @@ class _CompanyCard extends StatelessWidget {
               Container(
                 width: 28.w,
                 height: 28.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F3EF),
-                  borderRadius: BorderRadius.circular(9.r),
-                ),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 12.sp,
-                  color: colorCEAB8D,
-                ),
+                decoration: BoxDecoration(color: const Color(0xFFF5F3EF), borderRadius: BorderRadius.circular(9.r)),
+                child: Icon(Icons.arrow_forward_ios_rounded, size: 12.sp, color: colorCEAB8D),
               ),
             ],
           ),
@@ -425,12 +366,7 @@ class _CompanyCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12.r),
       child: logoUrl.isEmpty
-          ? Image.asset(
-              PNGImages.imgCompany2,
-              width: 56.w,
-              height: 56.w,
-              fit: BoxFit.cover,
-            )
+          ? Image.asset(PNGImages.imgCompany2, width: 56.w, height: 56.w, fit: BoxFit.cover)
           : AppCachedImage(
               imageUrl: logoUrl,
               width: 56.w,
@@ -454,20 +390,14 @@ class _SkeletonCompanyCard extends StatelessWidget {
       highlightColor: const Color(0xFFF8F8F8),
       child: Container(
         padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: colorWhite,
-          borderRadius: BorderRadius.circular(16.r),
-        ),
+        decoration: BoxDecoration(color: colorWhite, borderRadius: BorderRadius.circular(16.r)),
         child: Row(
           children: [
             // Logo placeholder
             Container(
               width: 56.w,
               height: 56.w,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
             ),
             SizedBox(width: 14.w),
             // Text placeholders
@@ -478,28 +408,19 @@ class _SkeletonCompanyCard extends StatelessWidget {
                   Container(
                     height: 14.h,
                     width: 140.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6.r)),
                   ),
                   SizedBox(height: 8.h),
                   Container(
                     height: 10.h,
                     width: 100.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5.r),
-                    ),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(5.r)),
                   ),
                   SizedBox(height: 8.h),
                   Container(
                     height: 10.h,
                     width: 80.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5.r),
-                    ),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(5.r)),
                   ),
                 ],
               ),
@@ -509,10 +430,7 @@ class _SkeletonCompanyCard extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(9.r),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(9.r)),
             ),
           ],
         ),

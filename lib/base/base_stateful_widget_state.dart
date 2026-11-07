@@ -24,13 +24,11 @@ import 'package:flutter/material.dart'
         AnnotatedRegion,
         protected,
         Colors;
-
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 
 import '../res/color.dart';
 
-abstract class BaseStatefulWidgetState<StateMVC extends StatefulWidget>
-    extends State<StateMVC> {
+abstract class BaseStatefulWidgetState<StateMVC extends StatefulWidget> extends State<StateMVC> {
   late ThemeData baseTheme;
   bool shouldShowProgress = false;
   bool shouldHaveSafeArea = Platform.isIOS ? false : true;
@@ -67,20 +65,21 @@ abstract class BaseStatefulWidgetState<StateMVC extends StatefulWidget>
         bottom: true,
         child: !isBackgroundImage
             ? bodyContent
-            : SizedBox(
-                width: screenSize.width,
-                height: screenSize.height,
-                child: bodyContent,
-              ),
+            : SizedBox(width: screenSize.width, height: screenSize.height, child: bodyContent),
       );
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: systemUiOverlayStyle,
       child: GestureDetector(
-        onTap: () => FocusScope.of(
-          rootScaffoldKey.currentContext!,
-        ).requestFocus(_dismissFocusNode),
+        onTap: () {
+          final currentContext = rootScaffoldKey.currentContext;
+          if (currentContext != null) {
+            FocusScope.of(currentContext).requestFocus(_dismissFocusNode);
+          } else if (mounted) {
+            FocusScope.of(context).unfocus();
+          }
+        },
         child: Scaffold(
           resizeToAvoidBottomInset: resizeToAvoidBottomInset,
           key: rootScaffoldKey,

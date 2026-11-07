@@ -4,14 +4,14 @@ import 'package:thredo/app_config.dart';
 import 'package:thredo/model/category_list_response.dart';
 import 'package:thredo/view/category/cubit/category_state.dart';
 
-class CategoryCubit extends Cubit<CategoryState>{
+class CategoryCubit extends Cubit<CategoryState> {
   CategoryCubit() : super(CategoryInitialState());
 
   static const int _pageSize = 10;
   bool _isRequestInProgress = false;
   int _page = 1;
 
-  CategoryStateData get _dataState => state as CategoryStateData;
+  CategoryStateData get _dataState => state is CategoryStateData ? (state as CategoryStateData) : CategoryStateData();
 
   Future<void> loadInitialCategories() async {
     if (_isRequestInProgress) return;
@@ -64,6 +64,7 @@ class CategoryCubit extends Cubit<CategoryState>{
         final mergedCategories = [...existingCategories, ...incomingCategories];
         final hasNext = response.pagination?.hasNext ?? (incomingCategories.length == _pageSize);
 
+        if (isClosed) return;
         _page++;
         emit(
           _dataState.copyWith(
@@ -75,6 +76,7 @@ class CategoryCubit extends Cubit<CategoryState>{
           ),
         );
       } else {
+        if (isClosed) return;
         emit(
           _dataState.copyWith(
             isInitialLoading: false,
@@ -84,6 +86,7 @@ class CategoryCubit extends Cubit<CategoryState>{
         );
       }
     } catch (_) {
+      if (isClosed) return;
       emit(
         _dataState.copyWith(
           isInitialLoading: false,
@@ -95,5 +98,4 @@ class CategoryCubit extends Cubit<CategoryState>{
       _isRequestInProgress = false;
     }
   }
-
 }

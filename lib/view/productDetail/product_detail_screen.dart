@@ -28,7 +28,6 @@ import 'package:thredo/widget/text_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../utils/helper.dart';
 import '../../utils/whatsapp_utils.dart';
 import 'ar_match_screen.dart';
 
@@ -835,12 +834,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       if (normalized.isEmpty) {
         _logProductEvent(eventType: 'invalid_company_number', productId: productId);
         if (context.mounted) {
-          showSnackBar(context, 'Supplier WhatsApp number not available.');
+          showMessage(message: 'Supplier WhatsApp number not available.');
         }
       } else {
         _logProductEvent(eventType: 'whatsapp_open_failed', productId: productId);
         if (context.mounted) {
-          showSnackBar(context, 'Could not launch WhatsApp.');
+          showMessage(message: 'Could not launch WhatsApp.');
         }
       }
     }

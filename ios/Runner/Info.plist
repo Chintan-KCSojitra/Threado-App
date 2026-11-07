@@ -64,5 +64,13 @@
 	<string>Photo access helps detect screenshots for product protection on older Android-based workflows.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Photo access helps detect screenshots for product protection.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>whatsapp</string>
+		<string>whatsapp-business</string>
+		<string>whatsapp-w4b</string>
+		<string>https</string>
+		<string>http</string>
+	</array>
 </dict>
 </plist>

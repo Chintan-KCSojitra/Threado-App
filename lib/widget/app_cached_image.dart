@@ -15,8 +15,8 @@ class AppCachedImage extends StatelessWidget {
   const AppCachedImage({
     super.key,
     required this.imageUrl,
-    this.variant = AppImageVariant.thumb,
-    this.useResize = true,
+    this.variant = AppImageVariant.large,
+    this.useResize = false,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
@@ -32,18 +32,18 @@ class AppCachedImage extends StatelessWidget {
     this.errorAssetPath,
     this.placeholderColor,
     this.showShimmer = false,
-    this.useMemCache = true,
+    this.useMemCache = false,
     this.progressIndicatorBuilder,
     this.imageBuilder,
   });
 
-  /// Original image URL from the API (resize is applied automatically).
+  /// Original image URL from the API (resize is applied automatically if useResize is true).
   final String imageUrl;
 
   /// One of three resize sizes — thumb (300), medium (600), large (1200).
   final AppImageVariant variant;
 
-  /// When false, [imageUrl] is loaded as-is (e.g. already a resize URL).
+  /// When false, [imageUrl] is loaded at original full resolution.
   final bool useResize;
 
   /// Optional fixed width / height.
@@ -62,7 +62,7 @@ class AppCachedImage extends StatelessWidget {
   /// Clip to a circle (takes precedence over [borderRadius]).
   final bool isCircle;
 
-  /// Resize the decoded image in memory to save RAM.
+  /// Resize the decoded image in memory.
   final int? memCacheWidth;
   final int? memCacheHeight;
 
@@ -93,8 +93,7 @@ class AppCachedImage extends StatelessWidget {
   /// When provided, [placeholder] is ignored by [CachedNetworkImage].
   final ProgressIndicatorBuilder? progressIndicatorBuilder;
 
-  /// Whether to use the memory resizing logic (defaults to true).
-  /// Disable this for zoomable or full-screen images where you need maximum resolution.
+  /// Whether to use the memory resizing logic (defaults to false for maximum image sharpness).
   final bool useMemCache;
 
   /// Full control over the rendered image (receives [ImageProvider]).
@@ -102,9 +101,7 @@ class AppCachedImage extends StatelessWidget {
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
-  String get _loadUrl => useResize
-      ? MediaResizeUrl.resolve(imageUrl, variant)
-      : imageUrl;
+  String get _loadUrl => useResize ? MediaResizeUrl.resolve(imageUrl, variant) : imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +114,6 @@ class AppCachedImage extends StatelessWidget {
     int? finalMemCacheHeight = memCacheHeight;
 
     if (useMemCache) {
-      // Apply sensible default memory limits if none were explicitly provided
       if (finalMemCacheWidth == null && finalMemCacheHeight == null) {
         if (width != null && width != double.infinity) {
           finalMemCacheWidth = (width! * 3).toInt();
@@ -126,9 +122,6 @@ class AppCachedImage extends StatelessWidget {
           finalMemCacheHeight = (height! * 3).toInt();
         }
 
-        // If still null, cap decode size to the resize variant
-        // EXCEPTION: For BoxFit.contain, we MUST NOT cap decode size if it causes cropping.
-        // We will only cap if useResize is true.
         if (finalMemCacheWidth == null && finalMemCacheHeight == null && useResize) {
           finalMemCacheWidth = variant.width;
           finalMemCacheHeight = variant.height;
@@ -145,16 +138,15 @@ class AppCachedImage extends StatelessWidget {
       height: height,
       fit: fit,
       alignment: alignment,
+      filterQuality: FilterQuality.high,
       memCacheWidth: finalMemCacheWidth,
       memCacheHeight: finalMemCacheHeight,
       fadeInDuration: fadeInDuration,
       fadeOutDuration: fadeOutDuration ?? const Duration(milliseconds: 300),
       imageBuilder: imageBuilder,
       progressIndicatorBuilder: progressIndicatorBuilder,
-      placeholder: progressIndicatorBuilder != null
-          ? null
-          : (_, __) => _buildPlaceholder(),
-      errorWidget: (_, __, ___) => _buildError(),
+      placeholder: progressIndicatorBuilder != null ? null : (_, _) => _buildPlaceholder(),
+      errorWidget: (_, _, _) => _buildError(),
       cacheManager: AppCacheManager.instance,
     );
 
@@ -162,10 +154,7 @@ class AppCachedImage extends StatelessWidget {
     if (isCircle) {
       image = ClipOval(child: image);
     } else if (borderRadius > 0) {
-      image = ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: image,
-      );
+      image = ClipRRect(borderRadius: BorderRadius.circular(borderRadius), child: image);
     }
 
     return image;
@@ -186,10 +175,7 @@ class AppCachedImage extends StatelessWidget {
 
     return ColoredBox(
       color: placeholderColor ?? colorF2F2F2,
-      child: AppLoader.centered(
-        size: 28,
-        accentColor: colorCEAB8D,
-      ),
+      child: AppLoader.centered(size: 28, accentColor: colorCEAB8D),
     );
   }
 
@@ -197,23 +183,14 @@ class AppCachedImage extends StatelessWidget {
     if (errorWidget != null) return errorWidget!;
 
     if (errorAssetPath != null) {
-      return Image.asset(
-        errorAssetPath!,
-        width: width,
-        height: height,
-        fit: fit,
-      );
+      return Image.asset(errorAssetPath!, width: width, height: height, fit: fit);
     }
 
     return Container(
       width: width,
       height: height,
       color: colorE6E6E6,
-      child: Icon(
-        Icons.image_not_supported_outlined,
-        color: colorD9D9D9,
-        size: 24.sp,
-      ),
+      child: Icon(Icons.image_not_supported_outlined, color: colorD9D9D9, size: 24.sp),
     );
   }
 }

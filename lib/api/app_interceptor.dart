@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 
 import '../app_config.dart';
@@ -29,6 +28,14 @@ class AppInterceptor extends Interceptor {
   }
 
   @override
+  Future onResponse(Response response, ResponseInterceptorHandler handler) async {
+    if (response.statusCode == 401) {
+      _handleError();
+    }
+    return handler.next(response);
+  }
+
+  @override
   Future onError(DioException err, ErrorInterceptorHandler handler) async {
     if (_shouldHandleError(err)) _handleError();
     return handler.next(err);
@@ -36,10 +43,11 @@ class AppInterceptor extends Interceptor {
 
   bool _shouldHandleError(DioException error) {
     return (error.type == DioExceptionType.badResponse && (error.response?.statusCode == 401)) ||
-        (error.type == DioExceptionType.badResponse && (error.message == 'TokenExpired' || error.message == 'Authorization error'));
+        (error.type == DioExceptionType.badResponse &&
+            (error.message == 'TokenExpired' || error.message == 'Authorization error'));
   }
 
   void _handleError() {
-    AppUtils.instance.logout();
+    AppUtils.instance.handleUnauthenticatedSession();
   }
 }

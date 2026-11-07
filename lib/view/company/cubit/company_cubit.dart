@@ -12,46 +12,41 @@ class CompanyCubit extends Cubit<CompanyState> {
   static const int pageSize = 10;
   static const int reviewsPageSize = 10;
 
-  CompanyStateData get dataState => state as CompanyStateData;
+  CompanyStateData get dataState => state is CompanyStateData ? (state as CompanyStateData) : CompanyStateData();
 
-  Future<List<CompanyListData>> fetchCompaniesPage({
-    required int pageKey,
-  }) async {
-    final query = <String, dynamic>{'page': pageKey, 'per_page': pageSize};
-    final search = dataState.searchText.trim();
-    if (search.isNotEmpty) {
-      query['q'] = search;
+  Future<List<CompanyListData>> fetchCompaniesPage({required int pageKey}) async {
+    try {
+      final query = <String, dynamic>{'page': pageKey, 'per_page': pageSize};
+      final search = dataState.searchText.trim();
+      if (search.isNotEmpty) {
+        query['q'] = search;
+      }
+
+      final result = await DioHelper.getData(
+        url: ApiConfig.companyListEP,
+        query: query,
+        isHeader: true,
+        enableCache: false,
+        forceRefresh: true,
+      );
+
+      if (result.statusCode == 200) {
+        final response = CompanyListResponse.fromJson(result.data);
+        return response.data ?? <CompanyListData>[];
+      }
+      return <CompanyListData>[];
+    } catch (_) {
+      return <CompanyListData>[];
     }
-
-    final result = await DioHelper.getData(
-      url: ApiConfig.companyListEP,
-      query: query,
-      isHeader: true,
-      enableCache: false,
-      forceRefresh: true,
-    );
-
-    if (result.statusCode == 200) {
-      final response = CompanyListResponse.fromJson(result.data);
-      return response.data ?? <CompanyListData>[];
-    }
-    throw Exception('Failed to fetch companies');
   }
 
-  Future<List<ProductListData>> fetchCompanyProductsPage({
-    required String companyId,
-    required int page,
-  }) async {
+  Future<List<ProductListData>> fetchCompanyProductsPage({required String companyId, required int page}) async {
     final trimmedId = companyId.trim();
     if (trimmedId.isEmpty) return <ProductListData>[];
 
     final result = await DioHelper.getData(
       url: ApiConfig.productListEP,
-      query: {
-        'page': page,
-        'per_page': pageSize,
-        'company_id': trimmedId,
-      },
+      query: {'page': page, 'per_page': pageSize, 'company_id': trimmedId},
       isHeader: true,
       enableCache: false,
       forceRefresh: true,
@@ -59,7 +54,11 @@ class CompanyCubit extends Cubit<CompanyState> {
 
     if (result.statusCode == 200) {
       final response = ProductListResponse.fromJson(result.data);
-      return response.data ?? <ProductListData>[];
+      final list = List<ProductListData>.from(response.data ?? <ProductListData>[]);
+      if (page == 1) {
+        list.shuffle();
+      }
+      return list;
     }
     throw Exception('Failed to fetch company products');
   }
@@ -68,19 +67,13 @@ class CompanyCubit extends Cubit<CompanyState> {
     emit(dataState.copyWith(searchText: value));
   }
 
-  Future<List<CompanyReview>> fetchCompanyReviewsPage({
-    required String companyId,
-    required int page,
-  }) async {
+  Future<List<CompanyReview>> fetchCompanyReviewsPage({required String companyId, required int page}) async {
     final trimmedId = companyId.trim();
     if (trimmedId.isEmpty) return <CompanyReview>[];
 
     final result = await DioHelper.getData(
       url: ApiConfig.companyReviewsEP(trimmedId),
-      query: {
-        'page': page,
-        'per_page': reviewsPageSize,
-      },
+      query: {'page': page, 'per_page': reviewsPageSize},
       isHeader: true,
       enableCache: false,
       forceRefresh: true,
@@ -93,17 +86,10 @@ class CompanyCubit extends Cubit<CompanyState> {
     throw Exception('Failed to fetch company reviews');
   }
 
-  Future<bool> addCompanyReview({
-    required String companyId,
-    required int rating,
-    required String reviewText,
-  }) async {
+  Future<bool> addCompanyReview({required String companyId, required int rating, required String reviewText}) async {
     final result = await DioHelper.postData(
       url: ApiConfig.companyReviewsEP(companyId),
-      data: {
-        'rating': rating,
-        'review_text': reviewText,
-      },
+      data: {'rating': rating, 'review_text': reviewText},
       isHeader: true,
     );
 

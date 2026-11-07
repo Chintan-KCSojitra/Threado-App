@@ -19,6 +19,7 @@ class HomeStateData extends HomeState {
     this.companies = const [],
     this.colors = const [],
     this.materials = const [],
+    this.wishlistedProductIds = const <String>{},
     this.selectedCompanyId,
     this.selectedColorId,
     this.selectedMaterialId,
@@ -39,6 +40,7 @@ class HomeStateData extends HomeState {
   final List<CompanyListData> companies;
   final List<ColorListData> colors;
   final List<MaterialsData> materials;
+  final Set<String> wishlistedProductIds;
 
   final String? selectedCompanyId;
   final String? selectedColorId;
@@ -88,6 +90,7 @@ class HomeStateData extends HomeState {
     List<CompanyListData>? companies,
     List<ColorListData>? colors,
     List<MaterialsData>? materials,
+    Set<String>? wishlistedProductIds,
     String? selectedCompanyId,
     String? selectedColorId,
     String? selectedMaterialId,
@@ -111,6 +114,7 @@ class HomeStateData extends HomeState {
       companies: companies ?? this.companies,
       colors: colors ?? this.colors,
       materials: materials ?? this.materials,
+      wishlistedProductIds: wishlistedProductIds ?? this.wishlistedProductIds,
       selectedCompanyId: clearFilterSelections ? null : (selectedCompanyId ?? this.selectedCompanyId),
       selectedColorId: clearFilterSelections ? null : (selectedColorId ?? this.selectedColorId),
       selectedMaterialId: clearFilterSelections ? null : (selectedMaterialId ?? this.selectedMaterialId),
@@ -136,6 +140,7 @@ class HomeStateData extends HomeState {
         listEquals(other.companies, companies) &&
         listEquals(other.colors, colors) &&
         listEquals(other.materials, materials) &&
+        setEquals(other.wishlistedProductIds, wishlistedProductIds) &&
         other.selectedCompanyId == selectedCompanyId &&
         other.selectedColorId == selectedColorId &&
         other.selectedMaterialId == selectedMaterialId &&
@@ -158,6 +163,7 @@ class HomeStateData extends HomeState {
     Object.hashAll(companies),
     Object.hashAll(colors),
     Object.hashAll(materials),
+    Object.hashAll(wishlistedProductIds),
     selectedCompanyId,
     selectedColorId,
     selectedMaterialId,

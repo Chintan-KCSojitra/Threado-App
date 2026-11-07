@@ -1,10 +1,10 @@
-import 'dart:io';
-
+// import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:whatsapp_share_plus/whatsapp_share_plus.dart';
+
+// import 'package:whatsapp_share_plus/whatsapp_share_plus.dart';
 
 class WhatsappUtils {
   /// Normalizes a phone number for WhatsApp (removes non-digits, adds 91 if 10-digit).
@@ -62,35 +62,52 @@ Sent via Threado''';
   }
 
   /// Launches WhatsApp with a specific phone number and optional message.
-  /// Returns true if launched successfully.
+  /// Tries multiple URI schemes and fallback launch modes for 100% reliability on Android and iOS.
   static Future<bool> launchWhatsApp({required String phoneNumber, String? message}) async {
     final normalizedNumber = normalizePhoneNumber(phoneNumber);
-    if (normalizedNumber.isEmpty) return false;
+    if (normalizedNumber.isEmpty) {
+      debugPrint('WhatsApp launch error: Normalized phone number is empty.');
+      return false;
+    }
 
     final encodedMessage = message != null ? Uri.encodeComponent(message) : '';
 
-    final appUri = Uri.parse('whatsapp://send?phone=$normalizedNumber&text=$encodedMessage');
-    final webUri = Uri.parse('https://wa.me/$normalizedNumber?text=$encodedMessage');
+    final uris = [
+      Uri.parse('whatsapp://send?phone=$normalizedNumber&text=$encodedMessage'),
+      Uri.parse('https://wa.me/$normalizedNumber?text=$encodedMessage'),
+      Uri.parse('https://api.whatsapp.com/send?phone=$normalizedNumber&text=$encodedMessage'),
+    ];
 
-    try {
-      if (await canLaunchUrl(appUri)) {
-        return await launchUrl(appUri, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(webUri)) {
-        return await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    for (final uri in uris) {
+      try {
+        if (await canLaunchUrl(uri)) {
+          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (launched) return true;
+        }
+      } catch (e) {
+        debugPrint('canLaunchUrl check failed for $uri: $e');
       }
-    } catch (e) {
-      debugPrint('WhatsApp launch error: $e');
+
+      // Direct launch fallback without canLaunchUrl check (handles OS intent filters)
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (launched) return true;
+      } catch (e) {
+        debugPrint('Direct launchUrl failed for $uri: $e');
+      }
     }
+
     return false;
   }
 
-  /// Shares an image and text to WhatsApp using whatsapp_share_plus.
-  /// Falls back to text-only launchWhatsApp if image sharing fails.
+  /// Redirects directly to WhatsApp chat using the phone number and pre-filled message.
+  /// Note: File/Image sharing is currently disabled for both Android and iOS.
   static Future<bool> shareToWhatsAppWithImage({
     required String phoneNumber,
     required String message,
     required String imageUrl,
   }) async {
+    /* File / Image sharing commented out for now:
     final normalizedNumber = normalizePhoneNumber(phoneNumber);
 
     String? imagePath;
@@ -100,35 +117,32 @@ Sent via Threado''';
 
     try {
       if (imagePath != null && imagePath.isNotEmpty) {
-        // Use whatsapp_share_plus for direct share (supports text + image + phone)
         await WhatsappSharePlus.shareImageToWhatsapp(
           text: message,
           phone: normalizedNumber.isNotEmpty ? normalizedNumber : null,
           imagePath: imagePath,
         );
-      } else {
-        // Use text-only share
-        await WhatsappSharePlus.shareToWhatsapp(
-          text: message,
-          phone: normalizedNumber.isNotEmpty ? normalizedNumber : null,
-        );
+        return true;
       }
-      return true;
     } catch (e) {
       debugPrint('WhatsApp image share error: $e');
     }
+    */
 
-    // Fallback to manual text-only launch if sharing via plugin fails
+    // Directly open WhatsApp chat with phone number and inquiry message on both Android and iOS
     return await launchWhatsApp(phoneNumber: phoneNumber, message: message);
   }
 
-  /// Downloads an image to a temporary file and returns its path.
+  /* File / Image download helper commented out while file sharing is disabled:
   static Future<String?> _downloadImage(String url) async {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final tempDir = await getTemporaryDirectory();
-        final fileName = url.split('/').last.split('?').first;
+        var fileName = url.split('/').last.split('?').first;
+        if (fileName.isEmpty || !fileName.contains('.')) {
+          fileName = 'share_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        }
         final file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(response.bodyBytes);
         return file.path;
@@ -138,4 +152,5 @@ Sent via Threado''';
     }
     return null;
   }
+  */
 }

@@ -1,34 +1,31 @@
 class CompanyListResponse {
-  CompanyListResponse({
-      this.success, 
-      this.message, 
-      this.data, 
-      this.pagination,});
+  CompanyListResponse({this.success, this.message, this.data, this.pagination});
 
   CompanyListResponse.fromJson(dynamic json) {
-    success = json['success'];
-    message = json['message'];
-    if (json['data'] != null) {
+    if (json is! Map) return;
+    success = json['success'] as bool?;
+    message = json['message'] as String?;
+    if (json['data'] is List) {
       data = [];
-      json['data'].forEach((v) {
-        data?.add(CompanyListData.fromJson(v));
-      });
+      for (final v in (json['data'] as List)) {
+        if (v != null) {
+          data?.add(CompanyListData.fromJson(v));
+        }
+      }
     }
-    pagination = json['pagination'] != null ? Pagination.fromJson(json['pagination']) : null;
+    pagination = (json['pagination'] is Map) ? Pagination.fromJson(json['pagination']) : null;
   }
   bool? success;
   String? message;
   List<CompanyListData>? data;
   Pagination? pagination;
-CompanyListResponse copyWith({  bool? success,
-  String? message,
-  List<CompanyListData>? data,
-  Pagination? pagination,
-}) => CompanyListResponse(  success: success ?? this.success,
-  message: message ?? this.message,
-  data: data ?? this.data,
-  pagination: pagination ?? this.pagination,
-);
+  CompanyListResponse copyWith({bool? success, String? message, List<CompanyListData>? data, Pagination? pagination}) =>
+      CompanyListResponse(
+        success: success ?? this.success,
+        message: message ?? this.message,
+        data: data ?? this.data,
+        pagination: pagination ?? this.pagination,
+      );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['success'] = success;
@@ -41,17 +38,10 @@ CompanyListResponse copyWith({  bool? success,
     }
     return map;
   }
-
 }
 
 class Pagination {
-  Pagination({
-      this.page, 
-      this.perPage, 
-      this.total, 
-      this.totalPages, 
-      this.hasNext, 
-      this.hasPrev,});
+  Pagination({this.page, this.perPage, this.total, this.totalPages, this.hasNext, this.hasPrev});
 
   Pagination.fromJson(dynamic json) {
     page = json['page'];
@@ -67,19 +57,15 @@ class Pagination {
   num? totalPages;
   bool? hasNext;
   bool? hasPrev;
-Pagination copyWith({  num? page,
-  num? perPage,
-  num? total,
-  num? totalPages,
-  bool? hasNext,
-  bool? hasPrev,
-}) => Pagination(  page: page ?? this.page,
-  perPage: perPage ?? this.perPage,
-  total: total ?? this.total,
-  totalPages: totalPages ?? this.totalPages,
-  hasNext: hasNext ?? this.hasNext,
-  hasPrev: hasPrev ?? this.hasPrev,
-);
+  Pagination copyWith({num? page, num? perPage, num? total, num? totalPages, bool? hasNext, bool? hasPrev}) =>
+      Pagination(
+        page: page ?? this.page,
+        perPage: perPage ?? this.perPage,
+        total: total ?? this.total,
+        totalPages: totalPages ?? this.totalPages,
+        hasNext: hasNext ?? this.hasNext,
+        hasPrev: hasPrev ?? this.hasPrev,
+      );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['page'] = page;
@@ -90,38 +76,38 @@ Pagination copyWith({  num? page,
     map['has_prev'] = hasPrev;
     return map;
   }
-
 }
 
 class CompanyListData {
   CompanyListData({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.logoUrl, 
-      this.bannerUrl, 
-      this.address, 
-      this.city, 
-      this.state, 
-      this.country, 
-      this.pincode, 
-      this.email, 
-      this.phone, 
-      this.website, 
-      this.isActive, 
-      this.instagramUrl, 
-      this.facebookUrl, 
-      this.twitterUrl, 
-      this.youtubeUrl, 
-      this.linkedinUrl, 
-      this.whatsappNumber, 
-      this.shadeCardEnabled, 
-      this.shadeCards, 
-      this.averageRating, 
-      this.reviewCount,
-      this.userReview,
-      this.reviews,
-      this.createdAt,});
+    this.id,
+    this.name,
+    this.description,
+    this.logoUrl,
+    this.bannerUrl,
+    this.address,
+    this.city,
+    this.state,
+    this.country,
+    this.pincode,
+    this.email,
+    this.phone,
+    this.website,
+    this.isActive,
+    this.instagramUrl,
+    this.facebookUrl,
+    this.twitterUrl,
+    this.youtubeUrl,
+    this.linkedinUrl,
+    this.whatsappNumber,
+    this.shadeCardEnabled,
+    this.shadeCards,
+    this.averageRating,
+    this.reviewCount,
+    this.userReview,
+    this.reviews,
+    this.createdAt,
+  });
 
   CompanyListData.fromJson(dynamic json) {
     id = json['id'];
@@ -153,9 +139,7 @@ class CompanyListData {
     }
     averageRating = json['average_rating'];
     reviewCount = json['review_count'];
-    userReview = json['user_review'] != null
-        ? CompanyReview.fromJson(json['user_review'])
-        : null;
+    userReview = json['user_review'] != null ? CompanyReview.fromJson(json['user_review']) : null;
     if (json['reviews'] != null) {
       reviews = [];
       json['reviews'].forEach((v) {
@@ -204,10 +188,7 @@ class CompanyListData {
     return list;
   }
 
-  CompanyListData withSubmittedReview({
-    required int rating,
-    required String reviewText,
-  }) {
+  CompanyListData withSubmittedReview({required int rating, required String reviewText}) {
     final newReview = CompanyReview(
       companyId: id,
       rating: rating,
@@ -219,9 +200,7 @@ class CompanyListData {
     final previousCount = reviewCount ?? existing.length;
     final newCount = previousCount + 1;
     final previousTotal = (averageRating ?? 0) * previousCount;
-    final newAverage = newCount > 0
-        ? (previousTotal + rating) / newCount
-        : rating.toDouble();
+    final newAverage = newCount > 0 ? (previousTotal + rating) / newCount : rating.toDouble();
 
     return copyWith(
       userReview: newReview,
@@ -231,61 +210,63 @@ class CompanyListData {
     );
   }
 
-CompanyListData copyWith({  String? id,
-  String? name,
-  String? description,
-  String? logoUrl,
-  dynamic bannerUrl,
-  String? address,
-  String? city,
-  String? state,
-  String? country,
-  String? pincode,
-  String? email,
-  String? phone,
-  dynamic website,
-  bool? isActive,
-  String? instagramUrl,
-  String? facebookUrl,
-  dynamic twitterUrl,
-  String? youtubeUrl,
-  dynamic linkedinUrl,
-  String? whatsappNumber,
-  bool? shadeCardEnabled,
-  List<ShadeCards>? shadeCards,
-  num? averageRating,
-  num? reviewCount,
-  CompanyReview? userReview,
-  List<CompanyReview>? reviews,
-  String? createdAt,
-}) => CompanyListData(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  logoUrl: logoUrl ?? this.logoUrl,
-  bannerUrl: bannerUrl ?? this.bannerUrl,
-  address: address ?? this.address,
-  city: city ?? this.city,
-  state: state ?? this.state,
-  country: country ?? this.country,
-  pincode: pincode ?? this.pincode,
-  email: email ?? this.email,
-  phone: phone ?? this.phone,
-  website: website ?? this.website,
-  isActive: isActive ?? this.isActive,
-  instagramUrl: instagramUrl ?? this.instagramUrl,
-  facebookUrl: facebookUrl ?? this.facebookUrl,
-  twitterUrl: twitterUrl ?? this.twitterUrl,
-  youtubeUrl: youtubeUrl ?? this.youtubeUrl,
-  linkedinUrl: linkedinUrl ?? this.linkedinUrl,
-  whatsappNumber: whatsappNumber ?? this.whatsappNumber,
-  shadeCardEnabled: shadeCardEnabled ?? this.shadeCardEnabled,
-  shadeCards: shadeCards ?? this.shadeCards,
-  averageRating: averageRating ?? this.averageRating,
-  reviewCount: reviewCount ?? this.reviewCount,
-  userReview: userReview ?? this.userReview,
-  reviews: reviews ?? this.reviews,
-  createdAt: createdAt ?? this.createdAt,
-);
+  CompanyListData copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? logoUrl,
+    dynamic bannerUrl,
+    String? address,
+    String? city,
+    String? state,
+    String? country,
+    String? pincode,
+    String? email,
+    String? phone,
+    dynamic website,
+    bool? isActive,
+    String? instagramUrl,
+    String? facebookUrl,
+    dynamic twitterUrl,
+    String? youtubeUrl,
+    dynamic linkedinUrl,
+    String? whatsappNumber,
+    bool? shadeCardEnabled,
+    List<ShadeCards>? shadeCards,
+    num? averageRating,
+    num? reviewCount,
+    CompanyReview? userReview,
+    List<CompanyReview>? reviews,
+    String? createdAt,
+  }) => CompanyListData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    logoUrl: logoUrl ?? this.logoUrl,
+    bannerUrl: bannerUrl ?? this.bannerUrl,
+    address: address ?? this.address,
+    city: city ?? this.city,
+    state: state ?? this.state,
+    country: country ?? this.country,
+    pincode: pincode ?? this.pincode,
+    email: email ?? this.email,
+    phone: phone ?? this.phone,
+    website: website ?? this.website,
+    isActive: isActive ?? this.isActive,
+    instagramUrl: instagramUrl ?? this.instagramUrl,
+    facebookUrl: facebookUrl ?? this.facebookUrl,
+    twitterUrl: twitterUrl ?? this.twitterUrl,
+    youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+    linkedinUrl: linkedinUrl ?? this.linkedinUrl,
+    whatsappNumber: whatsappNumber ?? this.whatsappNumber,
+    shadeCardEnabled: shadeCardEnabled ?? this.shadeCardEnabled,
+    shadeCards: shadeCards ?? this.shadeCards,
+    averageRating: averageRating ?? this.averageRating,
+    reviewCount: reviewCount ?? this.reviewCount,
+    userReview: userReview ?? this.userReview,
+    reviews: reviews ?? this.reviews,
+    createdAt: createdAt ?? this.createdAt,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -323,7 +304,6 @@ CompanyListData copyWith({  String? id,
     map['created_at'] = createdAt;
     return map;
   }
-
 }
 
 class CompanyReview {
@@ -383,16 +363,7 @@ class CompanyReview {
 }
 
 class ReviewUser {
-  ReviewUser({
-    this.id,
-    this.name,
-    this.email,
-    this.phone,
-    this.role,
-    this.isActive,
-    this.avatarUrl,
-    this.createdAt,
-  });
+  ReviewUser({this.id, this.name, this.email, this.phone, this.role, this.isActive, this.avatarUrl, this.createdAt});
 
   ReviewUser.fromJson(dynamic json) {
     id = json['id'];
@@ -437,12 +408,7 @@ class ReviewUser {
 }
 
 class ShadeCards {
-  ShadeCards({
-      this.id, 
-      this.companyId, 
-      this.imageUrl, 
-      this.name, 
-      this.createdAt,});
+  ShadeCards({this.id, this.companyId, this.imageUrl, this.name, this.createdAt});
 
   ShadeCards.fromJson(dynamic json) {
     id = json['id'];
@@ -456,17 +422,13 @@ class ShadeCards {
   String? imageUrl;
   dynamic name;
   String? createdAt;
-ShadeCards copyWith({  String? id,
-  String? companyId,
-  String? imageUrl,
-  dynamic name,
-  String? createdAt,
-}) => ShadeCards(  id: id ?? this.id,
-  companyId: companyId ?? this.companyId,
-  imageUrl: imageUrl ?? this.imageUrl,
-  name: name ?? this.name,
-  createdAt: createdAt ?? this.createdAt,
-);
+  ShadeCards copyWith({String? id, String? companyId, String? imageUrl, dynamic name, String? createdAt}) => ShadeCards(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    imageUrl: imageUrl ?? this.imageUrl,
+    name: name ?? this.name,
+    createdAt: createdAt ?? this.createdAt,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -476,5 +438,4 @@ ShadeCards copyWith({  String? id,
     map['created_at'] = createdAt;
     return map;
   }
-
 }

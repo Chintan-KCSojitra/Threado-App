@@ -17,7 +17,8 @@ class AllProductCubit extends Cubit<AllProductState> {
   int _page = 1;
   int _productsRequestId = 0;
 
-  AllProductStateData get _dataState => state as AllProductStateData;
+  AllProductStateData get _dataState =>
+      state is AllProductStateData ? (state as AllProductStateData) : const AllProductStateData();
 
   Future<void> init() async {
     if (_dataState.products.isNotEmpty || _inflightFetch != null) return;
@@ -183,7 +184,10 @@ class AllProductCubit extends Cubit<AllProductState> {
 
       if (result.statusCode == 200) {
         final response = ProductListResponse.fromJson(result.data);
-        final incoming = response.data ?? const <ProductListData>[];
+        final incoming = List<ProductListData>.from(response.data ?? const <ProductListData>[]);
+        if (!isLoadMore) {
+          incoming.shuffle();
+        }
         final merged = isLoadMore ? [..._dataState.products, ...incoming] : incoming;
         final hasNext = response.pagination?.hasNext ?? (incoming.length == _pageSize);
 

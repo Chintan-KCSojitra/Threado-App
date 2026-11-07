@@ -18,6 +18,7 @@ class SplashCubit extends Cubit<SplashState> {
         data: requestParams,
         isHeader: false,
       );
+      if (isClosed) return;
       if (result.statusCode == 200) {
         final response = HeaderImageResponse.fromJson(result.data);
         final urls = response.data ?? [];
@@ -28,6 +29,7 @@ class SplashCubit extends Cubit<SplashState> {
       }
     } catch (_) {
       // Silently ignore — screens fall back to local assets.
+      if (isClosed) return;
       emit(SplashImageErrorState());
     }
   }

@@ -1,113 +1,5 @@
-/*
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:thredo/api/dio_helper.dart';
-import 'package:thredo/app_config.dart';
-import 'package:thredo/model/banner_response.dart';
-import 'package:thredo/model/product_list_response.dart';
-import 'package:thredo/view/home/cubit/home_state.dart';
-
-class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(HomeInitialState());
-
-  static const int _pageSize = 10;
-  bool _isRequestInProgress = false;
-  int _page = 1;
-
-  HomeStateData get _dataState => state as HomeStateData;
-
-  Future<void> loadInitialProducts() async {
-    final current = state as HomeStateData;
-    if (current.products.isNotEmpty) return;
-    if (_isRequestInProgress) return;
-
-    _page = 1;
-    emit(
-      _dataState.copyWith(
-        products: const [],
-        categories: const [],
-        isInitialLoading: true,
-        isCategoriesLoading: true,
-        isLoadingMore: false,
-        hasMore: true,
-        clearErrorMessage: true,
-      ),
-    );
-    await _fetchBanners();
-    await _fetchProducts(isLoadMore: false);
-  }
-
-  Future<void> loadMoreProducts() async {
-    if (_isRequestInProgress) return;
-    final currentState = _dataState;
-    if (!currentState.hasMore || currentState.isInitialLoading || currentState.isLoadingMore) return;
-    emit(currentState.copyWith(isLoadingMore: true, clearErrorMessage: true));
-    await _fetchProducts(isLoadMore: true);
-  }
-
-  Future<void> _fetchProducts({required bool isLoadMore}) async {
-    _isRequestInProgress = true;
-    try {
-      final result = await DioHelper.getData(
-        url: ApiConfig.productListEP,
-        query: {'page': _page, 'per_page': _pageSize},
-        isHeader: true,
-      );
-
-      if (result.statusCode == 200) {
-        final response = ProductListResponse.fromJson(result.data);
-        final incomingProducts = response.data ?? [];
-        final existingProducts = isLoadMore ? _dataState.products : <ProductListData>[];
-        final mergedProducts = [...existingProducts, ...incomingProducts];
-        final hasNext = response.pagination?.hasNext ?? (incomingProducts.length == _pageSize);
-
-        _page++;
-        emit(
-          _dataState.copyWith(
-            products: mergedProducts,
-            isInitialLoading: false,
-            isLoadingMore: false,
-            hasMore: hasNext,
-            clearErrorMessage: true,
-          ),
-        );
-      } else {
-        emit(
-          _dataState.copyWith(
-            isInitialLoading: false,
-            isLoadingMore: false,
-            errorMessage: 'Failed to fetch products',
-          ),
-        );
-      }
-    } catch (_) {
-      emit(
-        _dataState.copyWith(
-          isInitialLoading: false,
-          isLoadingMore: false,
-          errorMessage: 'Something went wrong while loading products',
-        ),
-      );
-    } finally {
-      _isRequestInProgress = false;
-    }
-  }
-
-  Future<void> _fetchBanners() async {
-    try {
-      final result = await DioHelper.getData(
-        url: ApiConfig.bannerEP,
-        isHeader: true,
-      );
-      if (result.statusCode == 200) {
-        final response = BannerResponse.fromJson(result.data);
-        emit(_dataState.copyWith(banners: response.data ?? const <BannerData>[]));
-      }
-    } catch (_) {
-      // Keep current banners on failure to avoid blanking UI.
-    }
-  }
-}
-*/
+import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thredo/api/dio_helper.dart';
@@ -118,27 +10,23 @@ import 'package:thredo/model/color_list_response.dart';
 import 'package:thredo/model/company_list_response.dart';
 import 'package:thredo/model/materials_list_response.dart';
 import 'package:thredo/model/product_list_response.dart';
+import 'package:thredo/model/wish_list_response.dart';
+import 'package:thredo/utils/helper.dart';
 import 'package:thredo/view/home/cubit/home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  // [OPT-1] Use the const initial state — zero allocation on construction.
   HomeCubit() : super(const HomeInitialState());
 
-  static const int _pageSize = 9;
+  static const int _pageSize = 30;
   static const int _filterCompaniesPageSize = 100;
 
-  // [OPT-2] Replaced the boolean flag with a nullable Future reference.
-  // This is safer: if the widget is closed mid-flight, the in-progress guard
-  // still works, and we don't need a separate _isRequestInProgress field.
-  // Using a Future<void>? also allows callers to await completion if needed.
   Future<void>? _inflightFetch;
   int _page = 1;
+  int _totalProductPages = 1;
   int _productsRequestId = 0;
 
-  HomeStateData get _dataState => state as HomeStateData;
+  HomeStateData get _dataState => state is HomeStateData ? (state as HomeStateData) : const HomeStateData();
 
-  // [OPT-3] Guard against calling loadInitialProducts when products are
-  // already present OR a fetch is already running — same logic, cleaner check.
   Future<void> loadInitialProducts() async {
     final current = _dataState;
     if (current.products.isNotEmpty || _inflightFetch != null) return;
@@ -156,13 +44,11 @@ class HomeCubit extends Cubit<HomeState> {
       ),
     );
 
-    // [OPT-4] Fetch banners and products concurrently instead of sequentially.
-    // Previously _fetchBanners() finished before _fetchProducts() started,
-    // wasting one full round-trip of latency on every cold load.
     _inflightFetch = Future.wait([
       _fetchBanners(),
       _fetchCategories(),
       _fetchProducts(isLoadMore: false),
+      _fetchWishlist(),
       fetchFilters(),
     ]).whenComplete(() => _inflightFetch = null);
 
@@ -182,7 +68,7 @@ class HomeCubit extends Cubit<HomeState> {
     await _inflightFetch;
   }
 
-  /// Pull-to-refresh — keeps current search query.
+  /// Pull-to-refresh — keeps current search query and re-syncs wishlist.
   Future<void> refreshProducts() async {
     if (_inflightFetch != null) return;
 
@@ -203,6 +89,7 @@ class HomeCubit extends Cubit<HomeState> {
       if (!_dataState.isSearching) _fetchBanners(forceRefresh: true),
       _fetchCategories(forceRefresh: true),
       _fetchProducts(isLoadMore: false, forceRefresh: true),
+      _fetchWishlist(forceRefresh: true),
       fetchFilters(force: true),
     ]).whenComplete(() => _inflightFetch = null);
 
@@ -337,8 +224,94 @@ class HomeCubit extends Cubit<HomeState> {
     await applyFilters();
   }
 
+  /// Toggle wishlist state for a product directly on the Home Screen.
+  Future<void> toggleWishlist(String productId) async {
+    final trimmedId = productId.trim();
+    if (trimmedId.isEmpty) return;
+
+    final currentSet = Set<String>.from(_dataState.wishlistedProductIds);
+    final isCurrentlyLiked = currentSet.contains(trimmedId);
+
+    // Optimistic state update
+    if (isCurrentlyLiked) {
+      currentSet.remove(trimmedId);
+    } else {
+      currentSet.add(trimmedId);
+    }
+    emit(_dataState.copyWith(wishlistedProductIds: currentSet));
+
+    try {
+      if (isCurrentlyLiked) {
+        final response = await DioHelper.deleteData(url: 'user/wishlist/$trimmedId', isHeader: true);
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          final serverMsg = response.data is Map<String, dynamic>
+              ? (response.data['detail']?.toString() ?? response.data['message']?.toString())
+              : null;
+          throw Exception(serverMsg ?? 'Could not remove from wishlist');
+        }
+      } else {
+        final response = await DioHelper.postData(
+          url: ApiConfig.addToWishListEP,
+          data: {'product_id': trimmedId},
+          isHeader: true,
+        );
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          final serverMsg = response.data is Map<String, dynamic>
+              ? (response.data['detail']?.toString() ?? response.data['message']?.toString())
+              : null;
+          throw Exception(serverMsg ?? 'Could not add to wishlist');
+        }
+      }
+    } catch (error) {
+      // Revert optimistic state on failure
+      final revertedSet = Set<String>.from(_dataState.wishlistedProductIds);
+      if (isCurrentlyLiked) {
+        revertedSet.add(trimmedId);
+      } else {
+        revertedSet.remove(trimmedId);
+      }
+      emit(_dataState.copyWith(wishlistedProductIds: revertedSet));
+
+      final displayMsg =
+          getErrorMessage(error) ?? (isCurrentlyLiked ? 'Could not remove from wishlist' : 'Could not add to wishlist');
+      showMessage(message: displayMsg);
+    }
+  }
+
+  Future<void> _fetchWishlist({bool forceRefresh = false}) async {
+    try {
+      final response = await DioHelper.getData(
+        url: ApiConfig.getWishListEP,
+        isHeader: true,
+        forceRefresh: forceRefresh,
+      );
+      if (isClosed) return;
+      if (response.statusCode == 200) {
+        final data = WishListResponse.fromJson(response.data);
+        final ids = <String>{};
+        if (data.data != null) {
+          for (final item in data.data!) {
+            if (item.productId != null && item.productId!.trim().isNotEmpty) {
+              ids.add(item.productId!.trim());
+            } else if (item.product?.id != null && item.product!.id!.trim().isNotEmpty) {
+              ids.add(item.product!.id!.trim());
+            }
+          }
+        }
+        emit(_dataState.copyWith(wishlistedProductIds: ids));
+      }
+    } catch (_) {
+      // Keep existing set on error
+    }
+  }
+
   Map<String, dynamic> _productQueryParams() {
-    final params = <String, dynamic>{'page': _page, 'per_page': _pageSize};
+    int pageToFetch = _page;
+    if (_page == 1 && !_dataState.isSearching && !_dataState.hasActiveFilters && _totalProductPages > 1) {
+      pageToFetch = Random().nextInt(_totalProductPages) + 1;
+    }
+
+    final params = <String, dynamic>{'page': pageToFetch, 'per_page': _pageSize};
     final q = _dataState.searchQuery.trim();
     if (q.isNotEmpty) {
       params['q'] = q;
@@ -371,21 +344,22 @@ class HomeCubit extends Cubit<HomeState> {
         forceRefresh: forceRefresh,
       );
 
-      // [OPT-5] Guard against emitting after cubit is closed (e.g. user
-      // navigated away mid-flight). isClosed is a built-in Cubit property.
       if (isClosed) return;
 
       if (result.statusCode == 200) {
         if (isClosed || requestId != _productsRequestId) return;
 
         final response = ProductListResponse.fromJson(result.data);
-        final incoming = response.data ?? const <ProductListData>[];
+        if (response.pagination?.totalPages != null && response.pagination!.totalPages! > 0) {
+          _totalProductPages = response.pagination!.totalPages!.toInt();
+        }
 
-        // [OPT-6] Avoid spread-copying the entire existing list on every
-        // load-more. Use an unmodifiable view built with addAll instead,
-        // cutting one full list allocation per pagination step.
+        final incoming = List<ProductListData>.from(response.data ?? const <ProductListData>[]);
+        if (!isLoadMore) {
+          incoming.shuffle();
+        }
+
         final merged = isLoadMore ? [..._dataState.products, ...incoming] : incoming;
-
         final hasNext = response.pagination?.hasNext ?? (incoming.length == _pageSize);
 
         _page++;
@@ -425,9 +399,8 @@ class HomeCubit extends Cubit<HomeState> {
         final response = BannerResponse.fromJson(result.data);
         emit(_dataState.copyWith(banners: response.data ?? const <BannerData>[]));
       }
-      // Silently keep existing banners on failure — same behaviour as before.
     } catch (_) {
-      // Keep current banners on failure to avoid blanking UI.
+      // Keep current banners on failure
     }
   }
 
@@ -435,7 +408,7 @@ class HomeCubit extends Cubit<HomeState> {
     try {
       final result = await DioHelper.getData(
         url: ApiConfig.categoryListEP,
-        query: {'page': 1, 'per_page': 6}, // We only need 6 for the home grid
+        query: {'page': 1, 'per_page': 6},
         isHeader: true,
         forceRefresh: forceRefresh,
       );

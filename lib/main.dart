@@ -166,6 +166,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 }
 */
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -204,13 +205,22 @@ Future<void> _initApp() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Register global error boundaries to prevent uncaught async/UI errors from crashing the app process
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('Global FlutterError caught: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Global PlatformDispatcher caught error: $error\n$stack');
+    return true; // Prevents crash
+  };
+
   // Increase image cache size to handle high-resolution shade cards safely
   PaintingBinding.instance.imageCache.maximumSize = 500; // Increase number of images
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 * 1024 * 1024; // 300 MB
 
-  // ─── [OPT-2] Lock orientation & set system UI before any async gap ──────
-  // Doing these synchronously before await prevents a brief visual flash where
-  // the wrong orientation or status bar colour appears during startup.
+  // Lock orientation & set system UI before any async gap
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -221,13 +231,13 @@ void main() async {
     ),
   );
 
-  // ─── [OPT-3] Run all initialisation in parallel ──────────────────────────
-  await Future.wait([_initApp(), ScreenshotDetector.init()]);
+  // Run initialisation safely — catch platform or storage errors cleanly
+  try {
+    await Future.wait([_initApp(), ScreenshotDetector.init()]);
+  } catch (e, stack) {
+    debugPrint('App Initialization Error caught: $e\n$stack');
+  }
 
-  // ─── [OPT-4] Create the cubit once outside the widget tree ──────────────
-  // Constructing LocaleCubit here means the BlocProvider below never recreates
-  // it on hot reload / tree rebuilds. Prevents an unnecessary rebuild cycle
-  // at the root of the tree.
   final localeCubit = LocaleCubit();
 
   runApp(BlocProvider.value(value: localeCubit, child: const MyApp()));

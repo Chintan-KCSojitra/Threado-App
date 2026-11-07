@@ -1,29 +1,27 @@
 class MaterialsListResponse {
-  MaterialsListResponse({
-      this.success, 
-      this.message, 
-      this.data,});
+  MaterialsListResponse({this.success, this.message, this.data});
 
   MaterialsListResponse.fromJson(dynamic json) {
-    success = json['success'];
-    message = json['message'];
-    if (json['data'] != null) {
+    if (json is! Map) return;
+    success = json['success'] as bool?;
+    message = json['message'] as String?;
+    if (json['data'] is List) {
       data = [];
-      json['data'].forEach((v) {
-        data?.add(MaterialsData.fromJson(v));
-      });
+      for (final v in (json['data'] as List)) {
+        if (v != null) {
+          data?.add(MaterialsData.fromJson(v));
+        }
+      }
     }
   }
   bool? success;
   String? message;
   List<MaterialsData>? data;
-MaterialsListResponse copyWith({  bool? success,
-  String? message,
-  List<MaterialsData>? data,
-}) => MaterialsListResponse(  success: success ?? this.success,
-  message: message ?? this.message,
-  data: data ?? this.data,
-);
+  MaterialsListResponse copyWith({bool? success, String? message, List<MaterialsData>? data}) => MaterialsListResponse(
+    success: success ?? this.success,
+    message: message ?? this.message,
+    data: data ?? this.data,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['success'] = success;
@@ -33,15 +31,10 @@ MaterialsListResponse copyWith({  bool? success,
     }
     return map;
   }
-
 }
 
 class MaterialsData {
-  MaterialsData({
-      this.id, 
-      this.name, 
-      this.description, 
-      this.isActive,});
+  MaterialsData({this.id, this.name, this.description, this.isActive});
 
   MaterialsData.fromJson(dynamic json) {
     id = json['id'];
@@ -53,15 +46,12 @@ class MaterialsData {
   String? name;
   String? description;
   bool? isActive;
-MaterialsData copyWith({  String? id,
-  String? name,
-  String? description,
-  bool? isActive,
-}) => MaterialsData(  id: id ?? this.id,
-  name: name ?? this.name,
-  description: description ?? this.description,
-  isActive: isActive ?? this.isActive,
-);
+  MaterialsData copyWith({String? id, String? name, String? description, bool? isActive}) => MaterialsData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    isActive: isActive ?? this.isActive,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -70,5 +60,4 @@ MaterialsData copyWith({  String? id,
     map['is_active'] = isActive;
     return map;
   }
-
 }

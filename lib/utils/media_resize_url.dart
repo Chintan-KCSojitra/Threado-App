@@ -28,20 +28,13 @@ class MediaResizeUrl {
 
   /// Returns a resize URL for [originalUrl], or the input unchanged when
   /// resize does not apply (empty, local asset, already resized).
-  static String resolve(
-    String? originalUrl, [
-    AppImageVariant variant = AppImageVariant.thumb,
-  ]) {
+  static String resolve(String? originalUrl, [AppImageVariant variant = AppImageVariant.large]) {
     final url = originalUrl?.trim() ?? '';
     if (url.isEmpty) return '';
     if (!_shouldResize(url)) return url;
 
     final query = Uri(
-      queryParameters: {
-        'url': url,
-        'w': variant.width.toString(),
-        'h': variant.height.toString(),
-      },
+      queryParameters: {'url': url, 'w': variant.width.toString(), 'h': variant.height.toString()},
     ).query;
 
     return '${ApiConfig.baseUrl}${ApiConfig.mediaResizeEP}?$query';
@@ -53,12 +46,13 @@ class MediaResizeUrl {
       return false;
     }
     if (lower.contains('/user/media/resize')) return false;
+    // Prefer direct media URLs served from the backend
+    if (lower.contains('/media/')) return false;
     return true;
   }
 }
 
 /// Convenience on API image URL strings.
 extension MediaResizeUrlExtension on String {
-  String resized([AppImageVariant variant = AppImageVariant.thumb]) =>
-      MediaResizeUrl.resolve(this, variant);
+  String resized([AppImageVariant variant = AppImageVariant.large]) => MediaResizeUrl.resolve(this, variant);
 }

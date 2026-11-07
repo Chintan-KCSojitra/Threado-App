@@ -1,29 +1,24 @@
 class BannerResponse {
-  BannerResponse({
-      this.success, 
-      this.message, 
-      this.data,});
+  BannerResponse({this.success, this.message, this.data});
 
   BannerResponse.fromJson(dynamic json) {
-    success = json['success'];
-    message = json['message'];
-    if (json['data'] != null) {
+    if (json is! Map) return;
+    success = json['success'] as bool?;
+    message = json['message'] as String?;
+    if (json['data'] is List) {
       data = [];
-      json['data'].forEach((v) {
-        data?.add(BannerData.fromJson(v));
-      });
+      for (final v in (json['data'] as List)) {
+        if (v != null) {
+          data?.add(BannerData.fromJson(v));
+        }
+      }
     }
   }
   bool? success;
   String? message;
   List<BannerData>? data;
-BannerResponse copyWith({  bool? success,
-  String? message,
-  List<BannerData>? data,
-}) => BannerResponse(  success: success ?? this.success,
-  message: message ?? this.message,
-  data: data ?? this.data,
-);
+  BannerResponse copyWith({bool? success, String? message, List<BannerData>? data}) =>
+      BannerResponse(success: success ?? this.success, message: message ?? this.message, data: data ?? this.data);
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['success'] = success;
@@ -33,16 +28,10 @@ BannerResponse copyWith({  bool? success,
     }
     return map;
   }
-
 }
 
 class BannerData {
-  BannerData({
-      this.id, 
-      this.imageUrl, 
-      this.isActive, 
-      this.sortOrder, 
-      this.createdAt,});
+  BannerData({this.id, this.imageUrl, this.isActive, this.sortOrder, this.createdAt});
 
   BannerData.fromJson(dynamic json) {
     id = json['id'];
@@ -56,17 +45,13 @@ class BannerData {
   bool? isActive;
   num? sortOrder;
   String? createdAt;
-BannerData copyWith({  String? id,
-  String? imageUrl,
-  bool? isActive,
-  num? sortOrder,
-  String? createdAt,
-}) => BannerData(  id: id ?? this.id,
-  imageUrl: imageUrl ?? this.imageUrl,
-  isActive: isActive ?? this.isActive,
-  sortOrder: sortOrder ?? this.sortOrder,
-  createdAt: createdAt ?? this.createdAt,
-);
+  BannerData copyWith({String? id, String? imageUrl, bool? isActive, num? sortOrder, String? createdAt}) => BannerData(
+    id: id ?? this.id,
+    imageUrl: imageUrl ?? this.imageUrl,
+    isActive: isActive ?? this.isActive,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+  );
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = id;
@@ -76,5 +61,4 @@ BannerData copyWith({  String? id,
     map['created_at'] = createdAt;
     return map;
   }
-
 }

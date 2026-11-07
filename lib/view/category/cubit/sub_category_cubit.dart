@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thredo/api/dio_helper.dart';
 import 'package:thredo/app_config.dart';
-import 'package:thredo/model/product_list_response.dart';
-import 'package:thredo/model/company_list_response.dart';
 import 'package:thredo/model/color_list_response.dart';
+import 'package:thredo/model/company_list_response.dart';
 import 'package:thredo/model/materials_list_response.dart';
+import 'package:thredo/model/product_list_response.dart';
 import 'package:thredo/view/category/cubit/sub_category_state.dart';
 
 class SubCategoryCubit extends Cubit<SubCategoryState> {
@@ -19,25 +19,18 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
   int _page = 1;
   int _productsRequestId = 0;
 
-  SubCategoryStateData get _dataState => state as SubCategoryStateData;
+  SubCategoryStateData get _dataState =>
+      state is SubCategoryStateData ? (state as SubCategoryStateData) : const SubCategoryStateData();
 
   Future<void> init() async {
-    await Future.wait([
-      fetchFilters(),
-      loadInitialProducts(),
-    ]);
+    await Future.wait([fetchFilters(), loadInitialProducts()]);
   }
 
   Future<void> fetchFilters({bool force = false}) async {
     if (isClosed) return;
     if (_dataState.filtersLoaded && !force) return;
 
-    emit(
-      _dataState.copyWith(
-        isFiltersLoading: true,
-        clearFiltersLoadError: true,
-      ),
-    );
+    emit(_dataState.copyWith(isFiltersLoading: true, clearFiltersLoadError: true));
 
     try {
       final responses = await Future.wait([
@@ -70,7 +63,8 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
         materials = MaterialsListResponse.fromJson(materialsRes.data).data ?? [];
       }
 
-      final allFailed = companies.isEmpty &&
+      final allFailed =
+          companies.isEmpty &&
           colors.isEmpty &&
           materials.isEmpty &&
           companyRes.statusCode != 200 &&
@@ -84,9 +78,7 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
           materials: materials,
           isFiltersLoading: false,
           filtersLoaded: true,
-          filtersLoadError: allFailed
-              ? 'Unable to load filters. Pull to refresh and try again.'
-              : null,
+          filtersLoadError: allFailed ? 'Unable to load filters. Pull to refresh and try again.' : null,
           clearFiltersLoadError: true,
         ),
       );
@@ -112,33 +104,19 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
   void toggleCompanyFilter(String? companyId) {
     final id = companyId?.trim();
     if (id == null || id.isEmpty) return;
-    emit(
-      _dataState.copyWith(
-        selectedCompanyId:
-            _dataState.selectedCompanyId == id ? null : id,
-      ),
-    );
+    emit(_dataState.copyWith(selectedCompanyId: _dataState.selectedCompanyId == id ? null : id));
   }
 
   void toggleColorFilter(String? colorId) {
     final id = colorId?.trim();
     if (id == null || id.isEmpty) return;
-    emit(
-      _dataState.copyWith(
-        selectedColorId: _dataState.selectedColorId == id ? null : id,
-      ),
-    );
+    emit(_dataState.copyWith(selectedColorId: _dataState.selectedColorId == id ? null : id));
   }
 
   void toggleMaterialFilter(String? materialId) {
     final id = materialId?.trim();
     if (id == null || id.isEmpty) return;
-    emit(
-      _dataState.copyWith(
-        selectedMaterialId:
-            _dataState.selectedMaterialId == id ? null : id,
-      ),
-    );
+    emit(_dataState.copyWith(selectedMaterialId: _dataState.selectedMaterialId == id ? null : id));
   }
 
   Future<void> applyFilters() async {
@@ -180,18 +158,13 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
         clearErrorMessage: true,
       ),
     );
-    await Future.wait([
-      fetchFilters(force: true),
-      _fetchProducts(isLoadMore: false),
-    ]);
+    await Future.wait([fetchFilters(force: true), _fetchProducts(isLoadMore: false)]);
   }
 
   Future<void> loadMoreProducts() async {
     if (_isRequestInProgress) return;
     final currentState = _dataState;
-    if (!currentState.hasMore ||
-        currentState.isInitialLoading ||
-        currentState.isLoadingMore) {
+    if (!currentState.hasMore || currentState.isInitialLoading || currentState.isLoadingMore) {
       return;
     }
     emit(currentState.copyWith(isLoadingMore: true, clearErrorMessage: true));
@@ -199,11 +172,7 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
   }
 
   Map<String, dynamic> _productQueryParams() {
-    final params = <String, dynamic>{
-      'page': _page,
-      'per_page': _pageSize,
-      'category_id': categoryId,
-    };
+    final params = <String, dynamic>{'page': _page, 'per_page': _pageSize, 'category_id': categoryId};
 
     final companyId = _dataState.selectedCompanyId?.trim();
     final colorId = _dataState.selectedColorId?.trim();
@@ -240,12 +209,12 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
 
       if (result.statusCode == 200) {
         final response = ProductListResponse.fromJson(result.data);
-        final incoming = response.data ?? const <ProductListData>[];
-        final merged = isLoadMore
-            ? [..._dataState.products, ...incoming]
-            : incoming;
-        final hasNext =
-            response.pagination?.hasNext ?? (incoming.length == _pageSize);
+        final incoming = List<ProductListData>.from(response.data ?? const <ProductListData>[]);
+        if (!isLoadMore) {
+          incoming.shuffle();
+        }
+        final merged = isLoadMore ? [..._dataState.products, ...incoming] : incoming;
+        final hasNext = response.pagination?.hasNext ?? (incoming.length == _pageSize);
 
         _page++;
         emit(
@@ -259,11 +228,7 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
         );
       } else {
         emit(
-          _dataState.copyWith(
-            isInitialLoading: false,
-            isLoadingMore: false,
-            errorMessage: 'Failed to fetch products',
-          ),
+          _dataState.copyWith(isInitialLoading: false, isLoadingMore: false, errorMessage: 'Failed to fetch products'),
         );
       }
     } catch (_) {
